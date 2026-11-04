@@ -64,6 +64,21 @@ python3 benchmark-aws/run_autotune.py \
 
 Add `--retry-attempts 3 --retry-backoff-ms 100 --retry-max-backoff-ms 1000 --retry-jitter 0.2` to retry `503` responses. The runner writes `stats.json` and `metrics.txt` next to each level summary. The multi-host controller does not yet expose the adaptive or retry flags; use the local runner for this experiment.
 
+### Gateway HA
+
+`ha_proxy.py` and `run_ha.py` run two gateways behind a health-checked local proxy:
+
+```sh
+python3 benchmark-aws/run_ha.py \
+  --model models/resnet50-v2-7.onnx \
+  --data benchmark-aws/data/imagenet500 \
+  --output /tmp/opencode/ha-run \
+  --worker-bin build/worker_node --gateway-bin build/gateway \
+  --rate 50 --duration 10 --admission-max 4 --force
+```
+
+The script runs normal, failover, and recovery phases. Failover terminates gateway 1 after 2 seconds; recovery restarts it. The proxy and its health checks are a local test harness, not a production load balancer. `summarize_ha.py` regenerates the sanitized artifact from the raw run directories.
+
 See the [full image benchmark report](../docs/autotune-benchmark.md) and the [sanitized summary](../benchmarks/results/2026-11-02-autotune-summary.json). Estimated campaign cost was $3.31 of the $10 ceiling. Treat these as benchmark results, not production readiness.
 
 ## Recovery

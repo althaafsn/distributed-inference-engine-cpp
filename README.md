@@ -39,7 +39,7 @@ The worker and gateway now handle `SIGTERM` and `SIGINT` with a bounded shutdown
 
 ## Overload protection
 
-The gateway supports an opt-in global in-flight limit, `ADMISSION_MAX_INFLIGHT`. At the limit it returns HTTP `503` with `Retry-After: 1` and exposes accepted, rejected, and current in-flight counters on `/stats`. In local 2-worker tests, a limit of 7 kept accepted p95 at 372–376 ms at 50 offered requests/s, where the baseline p95 was 5.6–8.4 s. On a 2-worker AWS `c6i.large` topology, admission kept accepted p95 at 339–344 ms at 50 and 100 offered requests/s; the baseline p95 was 12–29 s, and the 100 req/s baseline also produced 122–134 client timeouts. The gateway also exposes Prometheus metrics at `/metrics` and supports adaptive admission (`ADMISSION_ADAPTIVE=1`). In a local 10-second comparison, adaptive converged near the 400 ms target but did not beat the manually calibrated static limit, so static remains the default. This is benchmark evidence, not a production availability claim. See [overload protection](docs/overload-protection.md).
+The gateway supports an opt-in global in-flight limit, `ADMISSION_MAX_INFLIGHT`. At the limit it returns HTTP `503` with `Retry-After: 1` and exposes accepted, rejected, and current in-flight counters on `/stats`. In local 2-worker tests, a limit of 7 kept accepted p95 at 372–376 ms at 50 offered requests/s, where the baseline p95 was 5.6–8.4 s. On a 2-worker AWS `c6i.large` topology, admission kept accepted p95 at 339–344 ms at 50 and 100 offered requests/s; the baseline p95 was 12–29 s, and the 100 req/s baseline also produced 122–134 client timeouts. The gateway also exposes Prometheus metrics at `/metrics` and supports adaptive admission (`ADMISSION_ADAPTIVE=1`). In a local 10-second comparison, adaptive converged near the 400 ms target but did not beat the manually calibrated static limit, so static remains the default. Two gateways behind a health-checked local proxy also passed three failover/recovery runs at 50 req/s; per-gateway limits sum, and four each gave better p95 than seven each. This is benchmark evidence, not a production availability claim. See [overload protection](docs/overload-protection.md).
 
 ## Architecture
 
@@ -187,6 +187,15 @@ a longer one to that shape. Each request therefore occupies exactly one
 model-sized slot in a batch; an oversized request cannot shift the samples after
 it.
 
+#### GET /health
+
+Get gateway health and identity. This endpoint is never admission-gated.
+
+Response:
+```json
+{"status": "ok", "gateway_id": "gateway-1"}
+```
+
 #### GET /stats
 
 Get gateway statistics and circuit breaker states.
@@ -194,6 +203,7 @@ Get gateway statistics and circuit breaker states.
 Response:
 ```json
 {
+  "gateway_id": "gateway-1",
   "total_workers": 3,
   "circuit_breakers": [
     {

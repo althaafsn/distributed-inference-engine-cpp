@@ -71,4 +71,4 @@ jobs:
           python -m unittest tests.test_instrumented_worker tests.test_gateway_latency \
             tests.test_graceful_shutdown tests.test_api_validation \
             tests.test_gateway_failover tests.test_admission_control \
-            tests.test_gateway_metrics -v
+            tests.test_gateway_metrics tests.test_gateway_health -v

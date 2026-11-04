@@ -116,6 +116,9 @@ public:
     };
 
     explicit Gateway(const std::vector<std::string>& workers) {
+        if (const char* value = std::getenv("GATEWAY_ID")) {
+            gateway_id_ = value;
+        }
         if (const char* value = std::getenv("ROUTING_POLICY")) {
             routing_policy_ = value;
         }
@@ -212,6 +215,7 @@ public:
 
             std::cout << "Connected to worker: " << worker << std::endl;
         }
+        std::cout << "Gateway ID: " << gateway_id_ << std::endl;
         std::cout << "Routing policy: " << routing_policy_ << std::endl;
         std::cout << "Admission max in-flight: "
                   << (admission_configured_max_ == 0
@@ -264,6 +268,8 @@ public:
     ) {
         metrics_.recordRequest(endpoint, status, latency_us);
     }
+
+    const std::string& getGatewayId() const { return gateway_id_; }
 
     std::string renderMetrics() {
         std::vector<inference::WorkerMetrics> workers;
@@ -360,6 +366,7 @@ public:
     json getStats() {
         json stats;
         auto nodes = hash_ring_.getAllNodes();
+        stats["gateway_id"] = gateway_id_;
         stats["total_workers"] = nodes.size();
         stats["routing_policy"] = routing_policy_;
         stats["bounded_load_factor"] = load_factor_;
@@ -687,6 +694,7 @@ private:
     std::map<std::string, std::unique_ptr<CircuitBreaker>> circuit_breakers_;
     std::map<std::string, std::unique_ptr<ClientPool>> clients_;
     std::map<std::string, std::unique_ptr<std::atomic<int>>> in_flight_;
+    std::string gateway_id_ = "gateway";
     std::string routing_policy_ = "hash";
     double load_factor_ = 1.25;
     std::atomic<size_t> tie_break_counter_{0};
@@ -833,6 +841,13 @@ int main(int argc, char** argv) {
             res.status = 500;
             res.set_content(error.dump(), "application/json");
         }
+    });
+    // health endpoint (never admission-gated)
+    server.Get("/health", [&gateway](const httplib::Request&, httplib::Response& res) {
+        json health;
+        health["status"] = "ok";
+        health["gateway_id"] = gateway.getGatewayId();
+        res.set_content(health.dump(), "application/json");
     });
     // stats endpoint
     server.Get("/stats", [&gateway](const httplib::Request&, httplib::Response& res) {
