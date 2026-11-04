@@ -218,13 +218,20 @@ class AdmissionControlTests(unittest.TestCase):
         self.start_gateway("1")
         self.assert_second_concurrent_request_rejected(self.post_tensor)
 
-    def test_negative_limit_is_ignored(self):
-        self.start_gateway("-1")
+    def assert_ignored_limit(self, limit, warning):
+        self.start_gateway(limit)
         self.assertEqual(self.stats()["admission"]["max_in_flight"], 0)
+        self.assertIn(warning, (Path(self.tmp.name) / "gateway.log").read_text())
         self.worker.release.set()
-        status, _, _ = self.post_infer("negative-config")
+        status, _, _ = self.post_infer(f"config-{limit}")
         self.assertEqual(status, 200)
         self.assertEqual(self.worker.count, 1)
+
+    def test_negative_limit_is_ignored(self):
+        self.assert_ignored_limit("-1", "Ignoring negative ADMISSION_MAX_INFLIGHT")
+
+    def test_out_of_range_limit_is_ignored(self):
+        self.assert_ignored_limit("9223372036854775808", "Ignoring invalid ADMISSION_MAX_INFLIGHT")
 
     def test_malformed_request_releases_the_admission_slot(self):
         self.start_gateway("1")

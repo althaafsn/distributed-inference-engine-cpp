@@ -18,8 +18,8 @@ ADMISSION_MAX_INFLIGHT=7
 "admission": {
   "max_in_flight": 7,
   "in_flight": 0,
-  "accepted": 264,
-  "rejected": 236
+  "accepted": 286,
+  "rejected": 214
 }
 ```
 
@@ -104,7 +104,7 @@ At this rate the limit is close to the natural in-flight count. The admission ru
 
 All admission-run failures were controlled `503` responses. There were no other 5xx responses and no client timeouts.
 
-The baseline accepted every request but took 15–35 seconds to drain a 10-second workload. Its p95 was 5.6–24.4 seconds. That is queue collapse, even though the client saw HTTP 200 for every request.
+At 50 and 100 requests/s, the baseline accepted every request but took 15–35 seconds to drain a 10-second workload. Its p95 was 5.6–24.4 seconds. That is queue collapse, even though the client saw HTTP 200 for every request.
 
 ## Interpretation
 
@@ -132,7 +132,7 @@ The baseline accepted every request but took 15–35 seconds to drain a 10-secon
 ## Artifacts
 
 - Sanitized summary: `benchmarks/results/2026-11-04-overload-protection.json`.
-- Tests: `tests/test_admission_control.py` covers `/infer`, `/infer_tensor`, negative configuration, and release after a malformed request.
+- Tests: `tests/test_admission_control.py` covers `/infer`, `/infer_tensor`, negative and out-of-range configuration, and release after a malformed request.
 - Raw runs: `/tmp/opencode/final-*` (ignored, temporary).
 
 ## Rollback

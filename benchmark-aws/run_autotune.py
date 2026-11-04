@@ -114,8 +114,12 @@ def run_candidate(args: argparse.Namespace) -> int:
     gateway_bin = Path(args.gateway_bin)
     if not worker_bin.is_file():
         raise SystemExit(f"worker binary not found: {worker_bin}")
+    if not os.access(worker_bin, os.X_OK):
+        raise SystemExit(f"worker binary is not executable: {worker_bin}")
     if not gateway_bin.is_file():
         raise SystemExit(f"gateway binary not found: {gateway_bin}")
+    if not os.access(gateway_bin, os.X_OK):
+        raise SystemExit(f"gateway binary is not executable: {gateway_bin}")
     worker_bin_sha = file_sha(worker_bin)
     gateway_bin_sha = file_sha(gateway_bin)
 
@@ -205,7 +209,9 @@ def run_candidate(args: argparse.Namespace) -> int:
         "transport": args.transport,
         "mode": args.mode,
         "levels": effective_levels,
-        "requests_per_level": args.requests,
+        "requests_per_level": (
+            max(1, int(args.rate * args.duration)) if args.rate is not None else args.requests
+        ),
         "rate": args.rate,
         "duration": args.duration,
         "rate_concurrency": args.rate_concurrency,

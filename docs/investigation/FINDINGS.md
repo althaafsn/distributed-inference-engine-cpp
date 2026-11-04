@@ -108,7 +108,7 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 
 - Added opt-in `ADMISSION_MAX_INFLIGHT` at the gateway. It uses a compare-and-swap counter, returns controlled HTTP 503 with `Retry-After: 1` when the global in-flight limit is reached, and exposes admitted/rejected/in-flight counters in `/stats`.
 - Negative or out-of-range configuration is ignored with a warning, so a typo disables admission instead of rejecting every request.
-- The admission tests cover `/infer` and `/infer_tensor`, prove the rejected request never reaches the worker, and check release after a malformed request.
+- The admission tests cover `/infer`, `/infer_tensor`, negative and out-of-range configuration, prove the rejected request never reaches the worker, and check release after a malformed request.
 - Local 2-worker, 50 req/s open-loop runs: baseline accepted all requests but p95 was 5.6–8.4 s; admission limit 7 accepted 260–286 of 500 with p95 372.0–376.3 ms and p99 386.8–399.0 ms. The rest were controlled 503s. At 100 req/s, the baseline p95 was 24.4 s; admission accepted 296 of 1,000 with p95 387.3 ms and 704 controlled 503s.
 - This protects accepted latency; it does not add capacity. The result is local, uses static limits, and has no client retry policy. See `docs/overload-protection.md`.
 
