@@ -23,6 +23,8 @@ SOURCE_FILES = BASELINE_SOURCE_FILES | {
     "include/tensor_payload.h",
     "include/shutdown_signal.h",
     "include/request_validation.h",
+    "include/adaptive_admission.h",
+    "include/gateway_metrics.h",
 }
 SCRIPT_FILES = {"remote.sh", "load.py", "verify_source.py"}
 

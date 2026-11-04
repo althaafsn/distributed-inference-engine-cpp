@@ -68,7 +68,7 @@ Commands:
   --mode unique --cache 1 --threads 2 --force
 ```
 
-All reported runs used the same binaries:
+All runs in the static local matrix used the same binaries:
 
 - gateway SHA-256: `16168245be980b241966eaabce6cd2832b328e7e329d0061c020b55b52798fbc`
 - worker SHA-256: `603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794`
@@ -113,7 +113,7 @@ At 50 and 100 requests/s, the baseline accepted every request but took 15–35 s
 - At 2× the operating point, the limit of 7 sheds 42.8–48.0% of requests and keeps accepted p95 at 372–376 ms.
 - At 4× the operating point, it sheds 70.4% and keeps accepted p95 at 387 ms. The baseline p95 at the same offered load is 24.4 seconds.
 - The shed requests are explicit `503` responses with `Retry-After`, not silent timeouts.
-- A real client must honor `Retry-After` and retry with jitter. The load generator does not retry, so the 503 fraction is a property of the offered concurrency, not a client policy.
+- A real client must honor `Retry-After` and retry with jitter. The static experiment did not retry, so the 503 fraction is a property of the offered concurrency, not a client policy. The optional retry mode is measured separately below.
 - At 25 requests/s, the limit is close to the natural in-flight count, so short bursts can still be shed. That run is not evidence of a latency improvement.
 
 ## AWS multi-host validation
@@ -136,19 +136,85 @@ Topology: one `c6i.large` gateway, two `c6i.large` workers, and one `c6i.xlarge`
 
 Sanitized artifact: `benchmarks/results/2026-11-04-aws-admission-validation.json`. Raw run: `benchmark-aws/runs/infer-8449738a5d8c568d` (ignored, local).
 
+## Adaptive admission and metrics
+
+The gateway exposes Prometheus metrics at `/metrics` and supports an opt-in adaptive in-flight limit.
+
+### Metrics
+
+`/metrics` is never rejected, even when admission is full. It includes:
+
+- `gateway_requests_total{endpoint,status}` and a per-endpoint latency histogram.
+- `gateway_admission_in_flight`, `gateway_admission_limit`, `gateway_admission_configured_max`, `gateway_admission_min`, and `gateway_admission_adaptive`.
+- `gateway_admission_target_p95_ms`, `gateway_admission_observed_p95_ms`, and `gateway_admission_observed_samples`.
+- `gateway_admission_accepted_total`, `gateway_admission_rejected_total`, and `gateway_admission_limit_changes_total`.
+- `gateway_worker_in_flight{worker}` and `gateway_worker_circuit_open{worker}`.
+
+### Policy
+
+Enable adaptive mode with:
+
+```sh
+ADMISSION_ADAPTIVE=1
+ADMISSION_MAX_INFLIGHT=12
+ADMISSION_MIN_INFLIGHT=2
+ADMISSION_TARGET_P95_MS=400
+ADMISSION_INTERVAL_MS=500
+```
+
+- The limit starts at `ADMISSION_MAX_INFLIGHT`.
+- Once per interval, one request elects itself to update the limit from the last 256 successful requests.
+- Fewer than 20 samples: hold.
+- p95 above 110% of target: decrease by 20%, never below the configured minimum.
+- p95 below 75% of target: increase by 1, never above the configured maximum.
+- Otherwise hold. This deadband reduces oscillation around the target.
+- The latency window is cleared after a change so stale samples do not dominate the next decision. `observed_samples` is the sample count used by the last decision, not the current window size.
+- Static mode is unchanged; `ADMISSION_ADAPTIVE=0` keeps the previous behavior.
+
+### Local experiment
+
+Two local workers, ResNet50, 500 unique images, cache 1, 10-second runs, 128 connections. Static 7 was compared with adaptive max 12, min 2, target 400 ms, interval 500 ms. All 12 conditions used gateway SHA-256 `b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609` and worker SHA-256 `603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794`.
+
+| Offered load | Static 7 | Adaptive | Adaptive final limit |
+| ---: | --- | --- | ---: |
+| 25 req/s | 250 / 250 accepted; 0 503s; p95 158 ms | 250 / 250 accepted; 0 503s; p95 362 ms | 12 |
+| 50 req/s | 264 / 500 median accepted (263–278); 236 503s (222–237); p95 397 ms (394–399) | 297 / 500 median accepted (260–300); 203 503s (200–240); p95 534 ms (471–552) | 6–7 |
+| 100 req/s | 277 / 1,000 accepted; 723 503s; p95 401 ms | 266 / 1,000 accepted; 734 503s; p95 557 ms | 7 |
+
+- Adaptive converges near the target: final observed p95 was 360 ms at 25, 351–385 ms at 50, and 398 ms at 100.
+- The whole-run p95 is still worse than static 7. At 25 requests/s the controller stays at the ceiling and accepts the 400 ms budget, so p95 is 362 ms versus 158 ms for static 7. At 50 it accepts more requests (297 versus 264) but p95 is 534 ms versus 397 ms. At 100 it accepts slightly fewer requests (266 versus 277) and p95 is 557 ms versus 401 ms.
+- The 10-second window includes the convergence ramp from the initial limit of 12 and large run-to-run variance. Static 7 was already manually calibrated for this topology.
+- This is a mixed result: adaptive admission works mechanically and converges near the target, but it did not beat the calibrated static limit in these short runs. The metrics surface and retry client are the durable deliverables; the policy needs a longer evaluation window, a lower initial limit, or a faster decrease before it can replace static tuning.
+
+### Retry-aware client
+
+At 100 requests/s with `--retry-attempts 3`, `Retry-After` and exponential backoff plus jitter:
+
+| Admission | Final successes | Attempts | Retried requests | Retry successes | Exhausted | p95 | Wall |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Static 7 | 399 / 1,000 | 3,280 | 842 | 241 | 601 | 3,323 ms | 13.2 s |
+| Adaptive | 320 / 1,000 | 3,437 | 883 | 203 | 680 | 3,329 ms | 13.2 s |
+
+Retry mode raises final goodput from 266–277 to 320–399 requests, but p95 rises to about 3.3 seconds because the metric includes the wait between attempts. It is a client-side goodput/latency tradeoff, not a free improvement.
+
+Sanitized artifact: `benchmarks/results/2026-11-04-adaptive-admission.json`.
+
 ## Limits
 
 - Local 16-core host and one AWS topology: 1 `c6i.large` gateway, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator.
 - Two workers; no 1/4/8-worker AWS comparison.
 - AWS: three 10-second runs per rate. Local: one run each at 25 and 100 requests/s, three at 50.
 - Worker CPU was collected on AWS; local runs record client CPU only.
-- The load generator is open-loop but does not implement retry/backoff.
+- The static local and AWS experiments did not retry; the optional retry mode is reported separately and uses fixed backoff/jitter.
 - Local runs share one host CPU. AWS separates the load, gateway, and workers.
 - The AWS load generator uses a 30-second client timeout; a real client may use a different timeout.
 - The admission limit of 7 was carried from the local 2-worker test and was not tuned on AWS.
-- The admission limit is static and manually selected. A production control plane would derive it from model, worker count, and SLO.
-- No TLS, authentication, per-user quota, metrics export, or public deployment.
-- Raw local runs remain under `/tmp/opencode/final-*`; the AWS raw run is under `benchmark-aws/runs/infer-8449738a5d8c568d`. These are ignored and can be lost. The sanitized JSON records the derived values and source hashes.
+- The adaptive and retry experiment is local only; no AWS adaptive or retry run was performed.
+- Adaptive policy constants (20 samples, 20% decrease, +1 increase, 110%/75% deadband) were chosen from first principles and not tuned across topologies.
+- Retry p95 includes the wait between attempts; it is not comparable to first-attempt latency.
+- Static mode uses a manually selected limit; adaptive mode is opt-in and was tested locally. A production control plane would also account for multiple gateways and per-client quotas.
+- No Prometheus server, dashboards, TLS, authentication, per-user quota, or public deployment.
+- Raw local runs remain under `/tmp/opencode/final-*` and `/tmp/opencode/adaptive-*`; the AWS raw run is under `benchmark-aws/runs/infer-8449738a5d8c568d`. These are ignored and can be lost. The sanitized JSONs record the derived values and binary or source hashes where available.
 - The benchmark is not a production availability claim.
 
 ## Artifacts
@@ -156,7 +222,7 @@ Sanitized artifact: `benchmarks/results/2026-11-04-aws-admission-validation.json
 - Local sanitized summary: `benchmarks/results/2026-11-04-overload-protection.json`.
 - AWS sanitized summary: `benchmarks/results/2026-11-04-aws-admission-validation.json`.
 - Tests: `tests/test_admission_control.py` covers `/infer`, `/infer_tensor`, negative and out-of-range configuration, and release after a malformed request.
-- Raw local runs: `/tmp/opencode/final-*` (ignored, temporary).
+- Raw local runs: `/tmp/opencode/final-*` and `/tmp/opencode/adaptive-*` (ignored, temporary).
 - Raw AWS run: `benchmark-aws/runs/infer-8449738a5d8c568d` (ignored, local).
 
 ## Rollback

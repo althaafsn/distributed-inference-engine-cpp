@@ -51,6 +51,10 @@ def start_services(args: argparse.Namespace, output: Path, phase: str):
             "CACHE_CAPACITY": str(args.cache),
             "GATEWAY_PORT": str(gateway_port),
             "ADMISSION_MAX_INFLIGHT": str(args.admission_max),
+            "ADMISSION_ADAPTIVE": "1" if args.admission_adaptive else "0",
+            "ADMISSION_MIN_INFLIGHT": str(args.admission_min),
+            "ADMISSION_TARGET_P95_MS": str(args.admission_target_p95_ms),
+            "ADMISSION_INTERVAL_MS": str(args.admission_interval_ms),
         }
     )
     logs = []
@@ -122,6 +126,12 @@ def run_candidate(args: argparse.Namespace) -> int:
         raise SystemExit(f"gateway binary is not executable: {gateway_bin}")
     worker_bin_sha = file_sha(worker_bin)
     gateway_bin_sha = file_sha(gateway_bin)
+    retry = loadgen.RetryConfig(
+        attempts=args.retry_attempts,
+        backoff_ms=args.retry_backoff_ms,
+        max_backoff_ms=args.retry_max_backoff_ms,
+        jitter=args.retry_jitter,
+    )
 
     summaries = []
     if args.accuracy:
@@ -143,6 +153,7 @@ def run_candidate(args: argparse.Namespace) -> int:
                     args.timeout,
                     True,
                     "accuracy",
+                    retry=retry,
                 )
             )
             summary["name"] = "accuracy"
@@ -182,6 +193,7 @@ def run_candidate(args: argparse.Namespace) -> int:
                     False,
                     f"rate{args.rate}" if args.rate is not None else f"c{level}",
                     args.seed,
+                    retry=retry,
                 )
             )
             label = f"rate{args.rate:g}-c{concurrency}" if args.rate is not None else f"c{level}"
@@ -189,6 +201,14 @@ def run_candidate(args: argparse.Namespace) -> int:
             summaries.append(summary)
             level_dir = output / f"level-{level}"
             level_dir.mkdir(exist_ok=True)
+            with urllib.request.urlopen(f"{target}/stats", timeout=10) as response:
+                (level_dir / "stats.json").write_text(
+                    response.read().decode() + "\n", encoding="utf-8"
+                )
+            with urllib.request.urlopen(f"{target}/metrics", timeout=10) as response:
+                (level_dir / "metrics.txt").write_text(
+                    response.read().decode() + "\n", encoding="utf-8"
+                )
             (level_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
             (level_dir / "requests.jsonl").write_text(
                 "".join(json.dumps(row) + "\n" for row in rows)
@@ -221,6 +241,16 @@ def run_candidate(args: argparse.Namespace) -> int:
         "cache_capacity": args.cache,
         "workers": args.workers,
         "admission_max_inflight": args.admission_max,
+        "admission_adaptive": args.admission_adaptive,
+        "admission_min_inflight": args.admission_min,
+        "admission_target_p95_ms": args.admission_target_p95_ms,
+        "admission_interval_ms": args.admission_interval_ms,
+        "retry": {
+            "attempts": args.retry_attempts,
+            "backoff_ms": args.retry_backoff_ms,
+            "max_backoff_ms": args.retry_max_backoff_ms,
+            "jitter": args.retry_jitter,
+        },
         "summaries": summaries,
     }
     (output / "run.json").write_text(json.dumps(run_record, indent=2) + "\n")
@@ -256,16 +286,38 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cache", type=int, default=1000)
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--admission-max", type=int, default=0)
+    parser.add_argument("--admission-adaptive", action="store_true")
+    parser.add_argument("--admission-min", type=int, default=1)
+    parser.add_argument("--admission-target-p95-ms", type=int, default=400)
+    parser.add_argument("--admission-interval-ms", type=int, default=1000)
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--retry-attempts", type=int, default=0)
+    parser.add_argument("--retry-backoff-ms", type=float, default=100.0)
+    parser.add_argument("--retry-max-backoff-ms", type=float, default=1000.0)
+    parser.add_argument("--retry-jitter", type=float, default=0.2)
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args(argv)
     if args.workers < 1:
         parser.error("--workers must be at least 1")
     if args.admission_max < 0:
         parser.error("--admission-max must be non-negative")
+    if args.admission_adaptive and args.admission_max <= 0:
+        parser.error("--admission-adaptive requires --admission-max > 0")
+    if args.admission_min < 1:
+        parser.error("--admission-min must be at least 1")
+    if args.admission_target_p95_ms < 1:
+        parser.error("--admission-target-p95-ms must be at least 1")
+    if args.admission_interval_ms < 100:
+        parser.error("--admission-interval-ms must be at least 100")
     if args.rate_concurrency < 1:
         parser.error("--rate-concurrency must be at least 1")
+    if args.retry_attempts < 0:
+        parser.error("--retry-attempts must be non-negative")
+    if args.retry_backoff_ms < 0 or args.retry_max_backoff_ms < 0:
+        parser.error("retry backoff must be non-negative")
+    if not 0 <= args.retry_jitter <= 1:
+        parser.error("--retry-jitter must be between 0 and 1")
     return run_candidate(args)
 
 
