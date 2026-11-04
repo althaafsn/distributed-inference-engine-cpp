@@ -114,4 +114,8 @@ if(BUILD_TESTING)
 
     add_executable(test_request_validation tests/test_request_validation.cpp)
     add_test(NAME request_validation COMMAND test_request_validation)
+
+    add_executable(test_adaptive_admission tests/test_adaptive_admission.cpp)
+    add_test(NAME adaptive_admission COMMAND test_adaptive_admission)
+    set_tests_properties(adaptive_admission PROPERTIES TIMEOUT 10)
 endif()

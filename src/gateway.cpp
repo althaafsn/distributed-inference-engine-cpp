@@ -1,9 +1,12 @@
+#include "adaptive_admission.h"
 #include "consistent_hash.h"
 #include "circuit_breaker.h"
+#include "gateway_metrics.h"
 #include "request_validation.h"
 #include "shutdown_signal.h"
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -122,28 +125,58 @@ public:
                 "ROUTING_POLICY must be hash, least_loaded, or bounded_load"
             );
         }
-        if (const char* value = std::getenv("ADMISSION_MAX_INFLIGHT")) {
-            try {
-                size_t consumed = 0;
-                const long long requested = std::stoll(value, &consumed);
-                if (consumed != std::strlen(value)) {
-                    std::cerr << "Ignoring ADMISSION_MAX_INFLIGHT with trailing characters: "
-                              << value << std::endl;
-                } else if (requested < 0) {
-                    std::cerr << "Ignoring negative ADMISSION_MAX_INFLIGHT: "
-                              << value << std::endl;
-                } else if (requested >
-                           static_cast<long long>(std::numeric_limits<int64_t>::max())) {
-                    std::cerr << "Ignoring out-of-range ADMISSION_MAX_INFLIGHT: "
-                              << value << std::endl;
-                } else if (requested > 0) {
-                    admission_max_inflight_ = static_cast<size_t>(requested);
-                }
-            } catch (const std::exception&) {
-                std::cerr << "Ignoring invalid ADMISSION_MAX_INFLIGHT: "
-                          << value << std::endl;
+        auto read_env_int = [](const char* name, long long fallback, long long minimum) {
+            const char* value = std::getenv(name);
+            if (value == nullptr) {
+                return fallback;
             }
+            try {
+                std::size_t consumed = 0;
+                const long long requested = std::stoll(value, &consumed);
+                if (consumed != std::strlen(value) || requested < minimum ||
+                    requested > static_cast<long long>(std::numeric_limits<int64_t>::max())) {
+                    std::cerr << "Ignoring invalid " << name << ": " << value << std::endl;
+                    return fallback;
+                }
+                return requested;
+            } catch (const std::exception&) {
+                std::cerr << "Ignoring invalid " << name << ": " << value << std::endl;
+                return fallback;
+            }
+        };
+
+        const long long configured_max = read_env_int("ADMISSION_MAX_INFLIGHT", 0, 0);
+        admission_configured_max_ = static_cast<std::size_t>(configured_max);
+        admission_min_inflight_ = static_cast<std::size_t>(
+            read_env_int("ADMISSION_MIN_INFLIGHT", 1, 1)
+        );
+        admission_target_p95_ms_ = read_env_int("ADMISSION_TARGET_P95_MS", 400, 1);
+        admission_interval_ms_ = read_env_int("ADMISSION_INTERVAL_MS", 1000, 100);
+        adaptive_ = read_env_int("ADMISSION_ADAPTIVE", 0, 0) != 0;
+        if (adaptive_ && admission_configured_max_ == 0) {
+            std::cerr << "ADMISSION_ADAPTIVE requires ADMISSION_MAX_INFLIGHT > 0; "
+                         "disabling adaptive admission"
+                      << std::endl;
+            adaptive_ = false;
         }
+        if (adaptive_ && admission_min_inflight_ > admission_configured_max_) {
+            std::cerr << "ADMISSION_MIN_INFLIGHT exceeds ADMISSION_MAX_INFLIGHT; "
+                         "using the maximum as the minimum"
+                      << std::endl;
+            admission_min_inflight_ = admission_configured_max_;
+        }
+        if (!adaptive_) {
+            admission_min_inflight_ = admission_configured_max_;
+        }
+        metrics_.admission_limit.store(static_cast<int64_t>(admission_configured_max_));
+        metrics_.admission_configured_max.store(
+            static_cast<int64_t>(admission_configured_max_)
+        );
+        metrics_.admission_min.store(static_cast<int64_t>(admission_min_inflight_));
+        metrics_.admission_adaptive.store(adaptive_ ? 1 : 0);
+        metrics_.admission_target_p95_ms.store(admission_target_p95_ms_);
+        metrics_.admission_observed_p95_ms.store(-1);
+        metrics_.admission_observed_samples.store(0);
         if (const char* value = std::getenv("BOUNDED_LOAD_FACTOR")) {
             try {
                 const double requested = std::stod(value);
@@ -181,8 +214,15 @@ public:
         }
         std::cout << "Routing policy: " << routing_policy_ << std::endl;
         std::cout << "Admission max in-flight: "
-                  << (admission_max_inflight_ == 0 ? "disabled" : std::to_string(admission_max_inflight_))
-                  << std::endl;
+                  << (admission_configured_max_ == 0
+                          ? "disabled"
+                          : std::to_string(admission_configured_max_))
+                  << (adaptive_ ? " (adaptive)" : "") << std::endl;
+        if (adaptive_) {
+            std::cout << "Admission adaptive: min=" << admission_min_inflight_
+                      << " target_p95_ms=" << admission_target_p95_ms_
+                      << " interval_ms=" << admission_interval_ms_ << std::endl;
+        }
     }
 
     struct AdmissionGuard {
@@ -200,21 +240,73 @@ public:
     };
 
     std::optional<AdmissionGuard> admitRequest() {
-        int64_t current = admission_in_flight_.load(std::memory_order_relaxed);
+        maybeUpdateAdmissionLimit();
+        const int64_t limit = metrics_.admission_limit.load(std::memory_order_relaxed);
+        int64_t current = metrics_.admission_in_flight.load(std::memory_order_relaxed);
         while (true) {
-            if (admission_max_inflight_ > 0 &&
-                current >= static_cast<int64_t>(admission_max_inflight_)) {
-                admission_rejected_.fetch_add(1, std::memory_order_relaxed);
+            if (limit > 0 && current >= limit) {
+                metrics_.admission_rejected.fetch_add(1, std::memory_order_relaxed);
                 return std::nullopt;
             }
-            if (admission_in_flight_.compare_exchange_weak(
+            if (metrics_.admission_in_flight.compare_exchange_weak(
                     current, current + 1,
                     std::memory_order_acq_rel, std::memory_order_relaxed)) {
-                admission_accepted_.fetch_add(1, std::memory_order_relaxed);
-                return AdmissionGuard(&admission_in_flight_);
+                metrics_.admission_accepted.fetch_add(1, std::memory_order_relaxed);
+                return AdmissionGuard(&metrics_.admission_in_flight);
             }
         }
     }
+
+    void recordRequest(
+        inference::MetricsRegistry::Endpoint endpoint,
+        int status,
+        int64_t latency_us
+    ) {
+        metrics_.recordRequest(endpoint, status, latency_us);
+    }
+
+    std::string renderMetrics() {
+        std::vector<inference::WorkerMetrics> workers;
+        for (const auto& node : hash_ring_.getAllNodes()) {
+            workers.push_back(
+                {
+                    node,
+                    in_flight_.at(node)->load(),
+                    circuit_breakers_.at(node)->getState() == CircuitState::OPEN,
+                }
+            );
+        }
+        return metrics_.renderPrometheus(workers);
+    }
+
+    struct RequestMetricsGuard {
+        Gateway& gateway;
+        inference::MetricsRegistry::Endpoint endpoint;
+        httplib::Response& response;
+        std::chrono::steady_clock::time_point started;
+
+        RequestMetricsGuard(
+            Gateway& gateway,
+            inference::MetricsRegistry::Endpoint endpoint,
+            httplib::Response& response
+        )
+            : gateway(gateway),
+              endpoint(endpoint),
+              response(response),
+              started(std::chrono::steady_clock::now()) {}
+
+        ~RequestMetricsGuard() {
+            try {
+                const auto latency_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::steady_clock::now() - started
+                ).count();
+                const int status = response.status > 0 ? response.status : 200;
+                gateway.recordRequest(endpoint, status, latency_us);
+            } catch (...) {
+                // Metrics must never change the response path.
+            }
+        }
+    };
     
     std::string routeRequest(const json& request) {
         // Hash routing preserves cache locality. Least-loaded and bounded-load
@@ -272,10 +364,17 @@ public:
         stats["routing_policy"] = routing_policy_;
         stats["bounded_load_factor"] = load_factor_;
         json admission;
-        admission["max_in_flight"] = admission_max_inflight_;
-        admission["in_flight"] = admission_in_flight_.load();
-        admission["accepted"] = admission_accepted_.load();
-        admission["rejected"] = admission_rejected_.load();
+        admission["max_in_flight"] = metrics_.admission_limit.load();
+        admission["configured_max"] = admission_configured_max_;
+        admission["min_in_flight"] = admission_min_inflight_;
+        admission["adaptive"] = adaptive_;
+        admission["target_p95_ms"] = admission_target_p95_ms_;
+        admission["observed_p95_ms"] = metrics_.admission_observed_p95_ms.load();
+        admission["observed_samples"] = metrics_.admission_observed_samples.load();
+        admission["limit_changes"] = metrics_.admission_limit_changes.load();
+        admission["in_flight"] = metrics_.admission_in_flight.load();
+        admission["accepted"] = metrics_.admission_accepted.load();
+        admission["rejected"] = metrics_.admission_rejected.load();
         stats["admission"] = admission;
         json loads = json::array();
         for (const auto& node : nodes) {
@@ -301,6 +400,55 @@ public:
     }
     
 private:
+    void maybeUpdateAdmissionLimit() {
+        if (!adaptive_) {
+            return;
+        }
+        const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()
+        ).count();
+        int64_t last = last_limit_update_ms_.load(std::memory_order_relaxed);
+        if (now - last < admission_interval_ms_) {
+            return;
+        }
+        if (!last_limit_update_ms_.compare_exchange_strong(
+                last, now, std::memory_order_relaxed)) {
+            return;
+        }
+        updateAdmissionLimit();
+    }
+
+    void updateAdmissionLimit() {
+        const std::size_t samples = metrics_.latencyWindow().size();
+        const int64_t p95_us = metrics_.latencyWindow().p95();
+        const int64_t p95_ms = p95_us < 0 ? -1 : p95_us / 1000;
+        metrics_.admission_observed_p95_ms.store(p95_ms, std::memory_order_relaxed);
+        metrics_.admission_observed_samples.store(
+            static_cast<int64_t>(samples), std::memory_order_relaxed
+        );
+        const std::size_t current = static_cast<std::size_t>(
+            metrics_.admission_limit.load(std::memory_order_relaxed)
+        );
+        const std::size_t next = inference::nextAdmissionLimit(
+            current,
+            p95_ms,
+            samples,
+            admission_min_inflight_,
+            admission_configured_max_,
+            admission_target_p95_ms_
+        );
+        if (next == current) {
+            return;
+        }
+        metrics_.admission_limit.store(
+            static_cast<int64_t>(next), std::memory_order_relaxed
+        );
+        metrics_.admission_limit_changes.fetch_add(1, std::memory_order_relaxed);
+        metrics_.latencyWindow().clear();
+        std::cout << "Adaptive admission limit: " << current << " -> " << next
+                  << " (p95 " << p95_ms << " ms, samples " << samples << ")" << std::endl;
+    }
+
     std::string selectNode(const std::string& key) {
         const auto nodes = hash_ring_.getAllNodes();
         if (nodes.empty()) {
@@ -542,10 +690,13 @@ private:
     std::string routing_policy_ = "hash";
     double load_factor_ = 1.25;
     std::atomic<size_t> tie_break_counter_{0};
-    size_t admission_max_inflight_ = 0;
-    std::atomic<int64_t> admission_in_flight_{0};
-    std::atomic<int64_t> admission_accepted_{0};
-    std::atomic<int64_t> admission_rejected_{0};
+    bool adaptive_ = false;
+    size_t admission_configured_max_ = 0;
+    size_t admission_min_inflight_ = 0;
+    int64_t admission_target_p95_ms_ = 400;
+    int64_t admission_interval_ms_ = 1000;
+    std::atomic<int64_t> last_limit_update_ms_{0};
+    inference::MetricsRegistry metrics_;
 };
 
 int main(int argc, char** argv) {
@@ -596,6 +747,9 @@ int main(int argc, char** argv) {
     server.new_task_queue = [] { return new httplib::ThreadPool(kServerThreads); };
     // inference endpoint
     server.Post("/infer", [&gateway](const httplib::Request& req, httplib::Response& res) {
+        Gateway::RequestMetricsGuard metrics_guard{
+            gateway, inference::MetricsRegistry::Endpoint::Infer, res
+        };
         try {
             auto admission = gateway.admitRequest();
             if (!admission.has_value()) {
@@ -610,7 +764,7 @@ int main(int argc, char** argv) {
             auto request = json::parse(req.body);
             inference::validateInferRequest(request);
             auto response = gateway.routeRequest(request);
-            
+            res.status = 200;
             res.set_content(response, "application/json");
         } catch (const nlohmann::json::parse_error& e) {
             json error;
@@ -631,6 +785,9 @@ int main(int argc, char** argv) {
     });
     // raw float32 tensor endpoint
     server.Post("/infer_tensor", [&gateway](const httplib::Request& req, httplib::Response& res) {
+        Gateway::RequestMetricsGuard metrics_guard{
+            gateway, inference::MetricsRegistry::Endpoint::Tensor, res
+        };
         try {
             auto admission = gateway.admitRequest();
             if (!admission.has_value()) {
@@ -654,6 +811,7 @@ int main(int argc, char** argv) {
                 );
             }
             const auto response = gateway.routeTensor(req.body, request_id);
+            res.status = 200;
             res.set_header("X-Request-Id", response.request_id);
             res.set_header("X-Node-Id", response.node_id);
             res.set_header("X-Cached", response.cached ? "true" : "false");
@@ -680,6 +838,14 @@ int main(int argc, char** argv) {
     server.Get("/stats", [&gateway](const httplib::Request&, httplib::Response& res) {
         auto stats = gateway.getStats();
         res.set_content(stats.dump(), "application/json");
+    });
+    // Prometheus metrics endpoint
+    server.Get("/metrics", [&gateway](const httplib::Request&, httplib::Response& res) {
+        res.set_header("Cache-Control", "no-store");
+        res.set_content(
+            gateway.renderMetrics(),
+            "text/plain; version=0.0.4; charset=utf-8"
+        );
     });
     std::cout << "Gateway listening on port " << listen_port << std::endl;
     std::cout << "Workers: " << workers.size() << std::endl;

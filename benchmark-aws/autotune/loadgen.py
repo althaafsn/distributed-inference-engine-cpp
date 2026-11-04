@@ -6,9 +6,11 @@ import argparse
 import asyncio
 import json
 import math
+import random
 import resource
 import struct
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import aiohttp
@@ -17,6 +19,39 @@ try:
     from .workloads import load_manifest, select_images, tensor_bytes
 except ImportError:
     from workloads import load_manifest, select_images, tensor_bytes
+
+
+@dataclass(frozen=True)
+class RetryConfig:
+    attempts: int = 0
+    backoff_ms: float = 100.0
+    max_backoff_ms: float = 1000.0
+    jitter: float = 0.2
+
+
+def parse_retry_after(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        seconds = float(value)
+    except ValueError:
+        return None
+    return max(0.0, seconds)
+
+
+def retry_delay_seconds(
+    attempt: int,
+    config: RetryConfig,
+    retry_after: float | None = None,
+    random_value: float | None = None,
+) -> float:
+    base = config.backoff_ms / 1000.0
+    exponential = min(config.max_backoff_ms / 1000.0, base * (2 ** max(0, attempt - 1)))
+    delay = max(exponential, retry_after or 0.0)
+    if config.jitter > 0:
+        value = random.random() if random_value is None else random_value
+        delay *= 1.0 + config.jitter * (2.0 * value - 1.0)
+    return max(0.0, delay)
 
 
 def percentile(values: list[float], fraction: float) -> float | None:
@@ -63,19 +98,14 @@ def build_specs(
     return specs
 
 
-async def _send_one(
+async def _attempt(
     session: aiohttp.ClientSession,
     target: str,
     spec: dict,
     transport: str,
     collect_output: bool,
 ) -> dict:
-    started = time.perf_counter()
-    row = {
-        "request_id": spec["request_id"],
-        "label_index": spec["entry"]["label_index"],
-        "success": False,
-    }
+    result = {"status": None, "success": False}
     try:
         if transport == "binary":
             async with session.post(
@@ -87,19 +117,22 @@ async def _send_one(
                 },
             ) as response:
                 body = await response.read()
-                row["status"] = response.status
-                row["cached"] = response.headers.get("X-Cached") == "true"
-                row["node_id"] = response.headers.get("X-Node-Id")
-                row["batch_size"] = int(response.headers.get("X-Batch-Size", "0"))
-                row["queue_wait_us"] = int(response.headers.get("X-Queue-Wait-Us", "0"))
-                row["batch_execution_us"] = int(response.headers.get("X-Batch-Execution-Us", "0"))
+                result["status"] = response.status
+                result["retry_after"] = response.headers.get("Retry-After")
+                result["cached"] = response.headers.get("X-Cached") == "true"
+                result["node_id"] = response.headers.get("X-Node-Id")
+                result["batch_size"] = int(response.headers.get("X-Batch-Size", "0"))
+                result["queue_wait_us"] = int(response.headers.get("X-Queue-Wait-Us", "0"))
+                result["batch_execution_us"] = int(
+                    response.headers.get("X-Batch-Execution-Us", "0")
+                )
                 if response.status == 200:
-                    if not row["cached"] and not body:
+                    if not result["cached"] and not body:
                         raise ValueError("empty binary response")
                     output = list(struct.unpack(f"<{len(body) // 4}f", body))
-                    row["success"] = True
+                    result["success"] = True
                     if collect_output:
-                        row["output"] = output
+                        result["output"] = output
         else:
             async with session.post(
                 target + "/infer",
@@ -107,19 +140,52 @@ async def _send_one(
                 headers={"Content-Type": "application/json"},
             ) as response:
                 body = await response.read()
-                row["status"] = response.status
+                result["status"] = response.status
+                result["retry_after"] = response.headers.get("Retry-After")
                 if response.status == 200:
                     parsed = json.loads(body)
-                    row["cached"] = bool(parsed.get("cached"))
-                    row["node_id"] = parsed.get("node_id")
-                    row["batch_size"] = parsed.get("batch_size") or 0
-                    row["queue_wait_us"] = parsed.get("queue_wait_us") or 0
-                    row["batch_execution_us"] = parsed.get("batch_execution_us") or 0
-                    row["success"] = bool(parsed.get("output_data"))
+                    result["cached"] = bool(parsed.get("cached"))
+                    result["node_id"] = parsed.get("node_id")
+                    result["batch_size"] = parsed.get("batch_size") or 0
+                    result["queue_wait_us"] = parsed.get("queue_wait_us") or 0
+                    result["batch_execution_us"] = parsed.get("batch_execution_us") or 0
+                    result["success"] = bool(parsed.get("output_data"))
                     if collect_output:
-                        row["output"] = parsed["output_data"]
+                        result["output"] = parsed["output_data"]
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError) as exc:
-        row["error"] = type(exc).__name__
+        result["error"] = type(exc).__name__
+    return result
+
+
+async def _send_one(
+    session: aiohttp.ClientSession,
+    target: str,
+    spec: dict,
+    transport: str,
+    collect_output: bool,
+    retry: RetryConfig | None = None,
+) -> dict:
+    retry = retry or RetryConfig()
+    started = time.perf_counter()
+    row = {
+        "request_id": spec["request_id"],
+        "label_index": spec["entry"]["label_index"],
+    }
+    attempts = 0
+    retried = False
+    while True:
+        attempts += 1
+        result = await _attempt(session, target, spec, transport, collect_output)
+        row.update(result)
+        if result.get("success") or result.get("status") != 503 or attempts > retry.attempts:
+            break
+        retried = True
+        delay = retry_delay_seconds(attempts, retry, parse_retry_after(result.get("retry_after")))
+        await asyncio.sleep(delay)
+    row["attempts"] = attempts
+    row["retried"] = retried
+    row["retry_success"] = retried and bool(row.get("success"))
+    row["retry_exhausted"] = retried and not row.get("success")
     row["latency_ms"] = round((time.perf_counter() - started) * 1000, 3)
     return row
 
@@ -132,6 +198,7 @@ async def _run_session(
     timeout: float,
     collect_output: bool,
     rate: float | None,
+    retry: RetryConfig | None = None,
 ) -> tuple[list[dict], float]:
     connector = aiohttp.TCPConnector(limit=max(1, concurrency), force_close=False)
     client_timeout = aiohttp.ClientTimeout(total=timeout)
@@ -148,7 +215,9 @@ async def _run_session(
                         spec = queue.get_nowait()
                     except asyncio.QueueEmpty:
                         return
-                    rows.append(await _send_one(session, target, spec, transport, collect_output))
+                    rows.append(
+                        await _send_one(session, target, spec, transport, collect_output, retry)
+                    )
 
             rows: list[dict] = []
             await asyncio.gather(*(worker() for _ in range(max(1, concurrency))))
@@ -162,7 +231,9 @@ async def _run_session(
                 if delay > 0:
                     await asyncio.sleep(delay)
                 tasks.append(
-                    asyncio.create_task(_send_one(session, target, spec, transport, collect_output))
+                    asyncio.create_task(
+                        _send_one(session, target, spec, transport, collect_output, retry)
+                    )
                 )
             rows.extend(await asyncio.gather(*tasks))
     return rows, time.monotonic() - started
@@ -202,6 +273,10 @@ def summarize(
         and p99 <= 1000
         and error_rate <= 0.001
     )
+    attempts = sum(row.get("attempts", 1) for row in rows)
+    retried_requests = sum(1 for row in rows if row.get("retried"))
+    retry_successes = sum(1 for row in rows if row.get("retry_success"))
+    retry_exhausted = sum(1 for row in rows if row.get("retry_exhausted"))
     return {
         "mode": mode,
         "transport": transport,
@@ -226,6 +301,12 @@ def summarize(
             "p99_ms": 1000,
             "error_rate": 0.001,
             "within_slo": within_slo,
+        },
+        "retry": {
+            "attempts": attempts,
+            "retried_requests": retried_requests,
+            "retry_successes": retry_successes,
+            "retry_exhausted": retry_exhausted,
         },
         "errors": [
             {"status": row.get("status"), "error": row.get("error")} for row in failures[:20]
@@ -270,6 +351,7 @@ async def run(
     collect_output: bool,
     prefix: str,
     seed: int = 0,
+    retry: RetryConfig | None = None,
 ) -> tuple[dict, list[dict], dict | None]:
     specs = build_specs(data_dir, manifest, mode, count, transport, prefix, seed)
     rows, elapsed = await _run_session(
@@ -280,6 +362,7 @@ async def run(
         timeout,
         collect_output,
         rate,
+        retry,
     )
     summary = summarize(rows, elapsed, transport, mode, concurrency, rate)
     accuracy_result = accuracy(rows) if collect_output else None
@@ -301,12 +384,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--accuracy", action="store_true")
     parser.add_argument("--allow-remote", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--retry-attempts", type=int, default=0)
+    parser.add_argument("--retry-backoff-ms", type=float, default=100.0)
+    parser.add_argument("--retry-max-backoff-ms", type=float, default=1000.0)
+    parser.add_argument("--retry-jitter", type=float, default=0.2)
     args = parser.parse_args(argv)
 
     if not args.allow_remote and not args.target.startswith(
         ("http://127.0.0.1", "http://localhost")
     ):
         parser.error("refusing a non-loopback target without --allow-remote")
+    if args.retry_attempts < 0:
+        parser.error("--retry-attempts must be non-negative")
+    if args.retry_backoff_ms < 0 or args.retry_max_backoff_ms < 0:
+        parser.error("retry backoff must be non-negative")
+    if not 0 <= args.retry_jitter <= 1:
+        parser.error("--retry-jitter must be between 0 and 1")
+    retry = RetryConfig(
+        attempts=args.retry_attempts,
+        backoff_ms=args.retry_backoff_ms,
+        max_backoff_ms=args.retry_max_backoff_ms,
+        jitter=args.retry_jitter,
+    )
     manifest = load_manifest(args.data)
     count = args.requests
     if args.rate is not None:
@@ -325,6 +424,7 @@ def main(argv: list[str] | None = None) -> int:
             args.accuracy,
             args.output.name,
             args.seed,
+            retry,
         )
     )
     args.output.mkdir(parents=True, exist_ok=True)

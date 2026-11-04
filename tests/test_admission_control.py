@@ -228,7 +228,7 @@ class AdmissionControlTests(unittest.TestCase):
         self.assertEqual(self.worker.count, 1)
 
     def test_negative_limit_is_ignored(self):
-        self.assert_ignored_limit("-1", "Ignoring negative ADMISSION_MAX_INFLIGHT")
+        self.assert_ignored_limit("-1", "Ignoring invalid ADMISSION_MAX_INFLIGHT")
 
     def test_out_of_range_limit_is_ignored(self):
         self.assert_ignored_limit("9223372036854775808", "Ignoring invalid ADMISSION_MAX_INFLIGHT")

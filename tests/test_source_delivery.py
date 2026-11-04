@@ -140,6 +140,8 @@ class SourceDeliveryTests(unittest.TestCase):
             "include/request_validation.h",
             "include/shutdown_signal.h",
             "include/tensor_payload.h",
+            "include/adaptive_admission.h",
+            "include/gateway_metrics.h",
         ):
             self.assertIn(name, controller.SOURCE_FILES)
             self.assertIn(name, verifier.SOURCE_FILES)
@@ -157,6 +159,8 @@ class SourceDeliveryTests(unittest.TestCase):
             self.assertIn("infer_tensor", patch)
             self.assertIn("block_shutdown_signals", patch)
             self.assertIn("validateInferRequest", patch)
+            self.assertIn("ADMISSION_ADAPTIVE", patch)
+            self.assertIn("gateway_requests_total", patch)
 
     def test_other_source_changes_are_not_silently_omitted(self):
         def fake_git(args, **_kwargs):
