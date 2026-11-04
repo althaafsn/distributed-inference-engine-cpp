@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "scope": "Local overload protection comparison. Not an AWS or production result.",
+  "binaries": {
+    "gateway": {
+      "path": "/tmp/opencode/cmake-build-hardening/gateway",
+      "sha256": "16168245be980b241966eaabce6cd2832b328e7e329d0061c020b55b52798fbc"
+    },
+    "worker": {
+      "path": "/tmp/opencode/cmake-build-hardening/worker_node",
+      "sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794"
+    }
+  },
+  "hardware": {
+    "cpu": "AMD Ryzen 7 5800H, 16 logical CPUs",
+    "workers": 2,
+    "ort_intra_threads_per_worker": 2,
+    "model": "resnet50-v2-7",
+    "data": "500-image ImageNet subset, unique, cold cache (CACHE_CAPACITY=1)",
+    "transport": "raw float32",
+    "load_generator": "separate process on the same host; open-loop rate, 128 connection limit",
+    "duration_seconds": 10
+  },
+  "results": [
+    {
+      "condition": "final-base-25",
+      "admission_max_inflight": 0,
+      "offered_rate_rps": 25.0,
+      "requests": 250,
+      "successes": 250,
+      "failures": 0,
+      "shed_count": 0,
+      "shed_rate": 0.0,
+      "accepted_rps": 24.377,
+      "wall_seconds": 10.256,
+      "latency_ms": {
+        "p50": 256.721,
+        "p95": 605.537,
+        "p99": 775.331
+      },
+      "status_counts": {
+        "200": 250
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 2.97,
+      "client_cpu_percent": 4.84
+    },
+    {
+      "condition": "final-base-50-r1",
+      "admission_max_inflight": 0,
+      "offered_rate_rps": 50.0,
+      "requests": 500,
+      "successes": 500,
+      "failures": 0,
+      "shed_count": 0,
+      "shed_rate": 0.0,
+      "accepted_rps": 27.118,
+      "wall_seconds": 18.438,
+      "latency_ms": {
+        "p50": 2764.394,
+        "p95": 8357.369,
+        "p99": 8800.452
+      },
+      "status_counts": {
+        "200": 500
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 12.49,
+      "client_cpu_percent": 5.24
+    },
+    {
+      "condition": "final-base-50-r2",
+      "admission_max_inflight": 0,
+      "offered_rate_rps": 50.0,
+      "requests": 500,
+      "successes": 500,
+      "failures": 0,
+      "shed_count": 0,
+      "shed_rate": 0.0,
+      "accepted_rps": 28.886,
+      "wall_seconds": 17.31,
+      "latency_ms": {
+        "p50": 2438.981,
+        "p95": 7264.494,
+        "p99": 7541.093
+      },
+      "status_counts": {
+        "200": 500
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 13.8,
+      "client_cpu_percent": 5.46
+    },
+    {
+      "condition": "final-base-50-r3",
+      "admission_max_inflight": 0,
+      "offered_rate_rps": 50.0,
+      "requests": 500,
+      "successes": 500,
+      "failures": 0,
+      "shed_count": 0,
+      "shed_rate": 0.0,
+      "accepted_rps": 32.468,
+      "wall_seconds": 15.4,
+      "latency_ms": {
+        "p50": 2449.673,
+        "p95": 5559.537,
+        "p99": 5804.709
+      },
+      "status_counts": {
+        "200": 500
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 14.7,
+      "client_cpu_percent": 5.84
+    },
+    {
+      "condition": "final-base-100",
+      "admission_max_inflight": 0,
+      "offered_rate_rps": 100.0,
+      "requests": 1000,
+      "successes": 1000,
+      "failures": 0,
+      "shed_count": 0,
+      "shed_rate": 0.0,
+      "accepted_rps": 28.19,
+      "wall_seconds": 35.474,
+      "latency_ms": {
+        "p50": 11375.179,
+        "p95": 24371.272,
+        "p99": 25603.117
+      },
+      "status_counts": {
+        "200": 1000
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 13.67,
+      "client_cpu_percent": 4.38
+    },
+    {
+      "condition": "final-ad7-25",
+      "admission_max_inflight": 7,
+      "offered_rate_rps": 25.0,
+      "requests": 250,
+      "successes": 240,
+      "failures": 10,
+      "shed_count": 10,
+      "shed_rate": 0.04,
+      "accepted_rps": 23.812,
+      "wall_seconds": 10.079,
+      "latency_ms": {
+        "p50": 91.636,
+        "p95": 326.15,
+        "p99": 365.67
+      },
+      "status_counts": {
+        "200": 240,
+        "503": 10
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 1.7,
+      "client_cpu_percent": 4.45
+    },
+    {
+      "condition": "final-ad7-50-r1",
+      "admission_max_inflight": 7,
+      "offered_rate_rps": 50.0,
+      "requests": 500,
+      "successes": 286,
+      "failures": 214,
+      "shed_count": 214,
+      "shed_rate": 0.428,
+      "accepted_rps": 28.129,
+      "wall_seconds": 10.167,
+      "latency_ms": {
+        "p50": 229.926,
+        "p95": 376.288,
+        "p99": 388.76
+      },
+      "status_counts": {
+        "200": 286,
+        "503": 214
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 2.46,
+      "client_cpu_percent": 7.66
+    },
+    {
+      "condition": "final-ad7-50-r2",
+      "admission_max_inflight": 7,
+      "offered_rate_rps": 50.0,
+      "requests": 500,
+      "successes": 260,
+      "failures": 240,
+      "shed_count": 240,
+      "shed_rate": 0.48,
+      "accepted_rps": 25.633,
+      "wall_seconds": 10.143,
+      "latency_ms": {
+        "p50": 261.025,
+        "p95": 376.264,
+        "p99": 399.015
+      },
+      "status_counts": {
+        "200": 260,
+        "503": 240
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 2.71,
+      "client_cpu_percent": 7.53
+    },
+    {
+      "condition": "final-ad7-50-r3",
+      "admission_max_inflight": 7,
+      "offered_rate_rps": 50.0,
+      "requests": 500,
+      "successes": 272,
+      "failures": 228,
+      "shed_count": 228,
+      "shed_rate": 0.456,
+      "accepted_rps": 26.767,
+      "wall_seconds": 10.162,
+      "latency_ms": {
+        "p50": 246.136,
+        "p95": 371.959,
+        "p99": 386.807
+      },
+      "status_counts": {
+        "200": 272,
+        "503": 228
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 2.6,
+      "client_cpu_percent": 7.6
+    },
+    {
+      "condition": "final-ad7-100",
+      "admission_max_inflight": 7,
+      "offered_rate_rps": 100.0,
+      "requests": 1000,
+      "successes": 296,
+      "failures": 704,
+      "shed_count": 704,
+      "shed_rate": 0.704,
+      "accepted_rps": 29.058,
+      "wall_seconds": 10.187,
+      "latency_ms": {
+        "p50": 234.958,
+        "p95": 387.309,
+        "p99": 402.52
+      },
+      "status_counts": {
+        "200": 296,
+        "503": 704
+      },
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "batch_size_mean": 2.48,
+      "client_cpu_percent": 12.03
+    }
+  ],
+  "repeats": {
+    "baseline_50_rps": 3,
+    "admission_7_50_rps": 3
+  },
+  "excluded": [
+    "Early admission runs with rate-concurrency 1 were client-bound and are excluded.",
+    "Admission limits 6, 8, 12, and 16 were calibration runs; 7 was selected for the reported comparison."
+  ],
+  "notes": [
+    "All rows use the same gateway and worker binaries identified above.",
+    "Latency percentiles cover successful HTTP 200 responses only; 503 responses are reported as shed load.",
+    "The load generator does not retry after 503.",
+    "The client shares the host CPU with the gateway and workers."
+  ]
+}
