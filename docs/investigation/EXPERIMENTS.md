@@ -127,7 +127,7 @@ This is the resumable record for [CONTINUOUS-OPTIMIZATION.md](CONTINUOUS-OPTIMIZ
 | Correctness | 53 default tests passed / 10 intended skips; 10/10 benchmark load tests; routing integration test passes with two fake workers; static batch-1 model test passes; source-delivery tests include the new headers and engine backend. |
 | Decision | Accepted for the tested workload. Least-loaded routing and the static batch cap are real improvements. The CPU limit, not latency, sets the sustained capacity. Production readiness remains blocked by TLS/auth, rate limiting, graceful shutdown, observability, and model versioning. |
 | Artifacts | `docs/autotune-benchmark.md`, `benchmarks/results/2026-11-02-autotune-summary.json`; raw runs listed in the report. |
-| Cost | New campaign estimate $3.267; grand total $3.312 of the $10 budget. Cleanup verified: 0 active instances, 0 tagged security groups, 0 tagged volumes. |
+| Cost | Image campaign estimate $3.267; the cost ledger records the current project total. Cleanup verified: 0 active instances, 0 tagged security groups, 0 tagged volumes. |
 | Limits | 500-image subset, coarse closed-loop sweep, 5-minute holds, one region, Python JSON client, no spare worker in the failover test, no process-pool or gateway-batching implementation. |
 
 ## Cycle 7 — production hardening (accepted)
@@ -155,7 +155,7 @@ This is the resumable record for [CONTINUOUS-OPTIMIZATION.md](CONTINUOUS-OPTIMIZ
 | Baseline | Cycle-7 source at `b0bf9b3`; gateway had per-worker in-flight routing but no global admission limit. |
 | Change | Add `ADMISSION_MAX_INFLIGHT` (default 0, disabled); use a compare-and-swap admission counter; ignore negative or out-of-range configuration with a warning; return HTTP 503 with `Retry-After: 1`; expose admitted, rejected, and in-flight counters in `/stats`; extend the local runner to start multiple workers, pass the admission limit, record binary hashes, and use one rate-mode run. |
 | Workload | Local AMD Ryzen 7 5800H, 16 logical CPUs; 2 workers, 2 ORT threads each; ResNet50-v2-7; 500 unique images; cache capacity 1; binary transport; open-loop 25, 50, and 100 requests/s for 10 s; 128 connection limit. |
-| Verification | Admission tests cover `/infer`, `/infer_tensor`, negative and out-of-range configuration, and release after a malformed request; the rejected request never reaches the worker and the counters remain consistent. Full Python suite 75 tests (0 skips with aiohttp; 7 optional skips without); CTest 4/4. |
+| Verification | Admission tests cover `/infer`, `/infer_tensor`, negative and out-of-range configuration, and release after a malformed request; the rejected request never reaches the worker and the counters remain consistent. Full Python suite 75 tests at the time of cycle 8 (0 skips with aiohttp; 7 optional skips without); CTest 4/4. |
 | Results at 25 req/s | Baseline: 250/250 accepted, p95 605.5 ms. Admission 7: 240/250 accepted, 10 controlled 503s, p95 326.2 ms. The limit is close to the natural in-flight count here; the comparison is dominated by run-to-run variance. |
 | Results at 50 req/s | Baseline, three runs: 500/500 accepted; wall 18.4/17.3/15.4 s; p95 8,357/7,264/5,560 ms. Admission 7, three runs: 286/260/272 accepted; 214/240/228 controlled 503s; p95 376.3/376.3/372.0 ms; p99 388.8/399.0/386.8 ms; accepted throughput 28.1/25.6/26.8 req/s. |
 | Results at 100 req/s | Baseline: 1,000/1,000 accepted; wall 35.5 s; p95 24,371 ms. Admission 7: 296/1,000 accepted; 704 controlled 503s; p95 387.3 ms; p99 402.5 ms. |
@@ -164,9 +164,26 @@ This is the resumable record for [CONTINUOUS-OPTIMIZATION.md](CONTINUOUS-OPTIMIZ
 | Cost | Local only; $0. |
 | Limits | Static limit; local hardware; two workers; three 10-s runs at 50 req/s and one each at 25 and 100; client shares CPU; worker CPU not collected; no gateway `/health`; no client backoff; no TLS/auth/per-user quotas; no AWS or production claim. |
 
+## Cycle 9 — AWS multi-host admission validation (accepted for the tested AWS scope)
+
+| Field | Record |
+| --- | --- |
+| Hypothesis | The local admission result holds when the load generator, gateway, and workers run on separate EC2 hosts. The workers, not the gateway, should remain the bottleneck. |
+| Baseline | Cycle-8 source at `22706ca`; the AWS controller supported one open-loop hold but did not pass `ADMISSION_MAX_INFLIGHT` or run paired conditions. |
+| Change | Harness only: add `--admission-max`, `--hold-rates`, `--hold-repeats`, and `--hold-matrix`; pass the limit to the gateway; alternate baseline and admission runs; skip repeated load-host package setup. No gateway change. |
+| Workload | AWS `us-east-1`; 1 `c6i.large` gateway, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator; ResNet50-v2-7; 500 unique images; cache 1; binary transport; 2 ORT threads per worker; `least_loaded`; 25, 50, and 100 requests/s; 10 s; 128 connections; 3 repeats per rate. |
+| Verification | 13 controller tests passed; 18 AWS conditions completed; every gateway log showed `disabled` or `7` as configured; admission counters matched the load results; cleanup verified all instances terminated and all volumes and security groups removed. |
+| Results at 25 req/s | Baseline: 250/250 accepted, p95 1,511–1,581 ms. Admission 7: 234/250 accepted, 16 controlled 503s (6.4%), p95 324–331 ms, p99 339–342 ms. |
+| Results at 50 req/s | Baseline: 500/500 accepted, wall 22.6–32.0 s, p95 12,431–21,549 ms, no client timeouts. The 32.0 s/21.5 s high end includes five gateway-worker retries; the other two runs were 22.6–22.8 s/12.4–12.7 s. Admission 7: 234–237/500 accepted, 263–266 controlled 503s (52.6–53.2%), p95 339–340 ms, p99 343–346 ms. |
+| Results at 100 req/s | Baseline: 866–878/1,000 accepted, 122–134 client timeouts at 30 s, wall 40.1–40.7 s, p95 28,829–29,209 ms; gateway accepted all 1,000 and had 72–82 in flight at capture. Admission 7: 235/1,000 accepted, 765 controlled 503s (76.5%), p95 343–344 ms, p99 355–360 ms, no timeouts. |
+| Decision | Accepted for the tested AWS scope. The local behavior reproduces on separate hosts. Admission protects accepted latency and prevents client timeouts; it does not increase the ~23 req/s capacity. Both workers reached about 100% of their 2 vCPUs in the busiest 10 s window; gateway CPU stayed below about 15%. |
+| Artifacts | `benchmarks/results/2026-11-04-aws-admission-validation.json`, `docs/overload-protection.md`, raw run `benchmark-aws/runs/infer-8449738a5d8c568d`. |
+| Cost | $0.1326 for 4 instances over 17 minutes 40 seconds. |
+| Limits | One topology and region; 3 repeats per rate; static limit 7 carried from the local test; 30 s client timeout; no retry client; no multi-AZ, autoscaling, TLS/auth, or production claim. |
+
 ## Stop condition and future work
 
-Cycle 6 closes the multi-host capacity item for the tested workload. The remaining constraints are production concerns, not single-variable performance candidates: TLS and authentication, rate limiting and backpressure, graceful shutdown, metrics export, model versioning, multi-AZ replacement, and a long-duration soak.
+Cycle 6 closed the multi-host capacity item for the tested workload; cycle 9 validated admission control on a separate multi-host topology. The remaining constraints are production concerns, not single-variable performance candidates: TLS and authentication, rate limiting and backpressure, graceful shutdown, metrics export, model versioning, multi-AZ replacement, and a long-duration soak.
 
 Future work that would justify another cycle: a process-pool or multi-process-per-host comparison; gateway-side batching; a CPU-aware autoscaler; a longer hold with memory and file-descriptor tracking; a multi-AZ failover with spare capacity; and a compiled JSON client to isolate server-side transport cost. Each requires a new baseline, a one-variable change, and its own correctness and cost plan.
 

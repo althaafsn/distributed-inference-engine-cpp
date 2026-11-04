@@ -414,7 +414,7 @@ def preflight() -> dict:
     addr = public_ipv4()
     print(f"Account {account}, region {REGION}, instance {INSTANCE_TYPE}, AMI {AMI}")
     print(f"Subnet {selected['SubnetId']}, SSH ingress limited to {addr}/32")
-    print("Budget target $5 total; workload limit 30 minutes, instance watchdog 60 minutes.")
+    print("Budget ceiling $10 total; workload limit 30 minutes, instance watchdog 60 minutes.")
     print("Preflight does not prove launch, termination, data transfer, or cost ceiling.")
     return {
         "account": account,

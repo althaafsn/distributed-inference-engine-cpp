@@ -1,6 +1,6 @@
 # Investigation record
 
-Status: **complete for cycles 1–8.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the performance candidate queue is exhausted within the current single-host, authorization, and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Independent review remains outstanding; verification is a labeled self-review.
+Status: **complete for cycles 1–9.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
 
 ## Context and scope
 
@@ -10,7 +10,7 @@ Status: **complete for cycles 1–8.** The continuous cycle ledger is [EXPERIMEN
 - Initial `git status --short --branch`: `## main...origin/main`, `?? docs/investigation/`. No staged or modified tracked files before this investigation.
 - Environment: Ubuntu, Linux 7.0.0-34-generic, 16 logical CPUs (AMD Ryzen 7 5800H, 8 cores with SMT), 61 GiB RAM. Tools present: `python3` 3.14.4, `cmake` 4.2.3, `ctest`, `g++` 15.2.0, `aws` CLI, `perf`. Docker is present. ONNX Runtime 1.23.2 runtime is installed system-wide, but C++ headers were absent; local probes used the pinned ORT 1.23.2 release tarball in `/tmp/opencode`, not a system installation. The project's `external/` gitlinks were empty.
 - Scope: one evidence-supported performance improvement, correctness checks, a fair before/after comparison where feasible, and a portfolio/resume handoff. No production, distributed-scaling, GPU, or accuracy claims. No commits, pushes, or publication.
-- Safety: preserve all existing work; do not stop unrelated processes (port 8000 is used by an unrelated `job-outreach` process, so probes used 18xxx ports). AWS spending target remains $5 total; prior estimated spend is $0.009615.
+- Safety: preserve all existing work; do not stop unrelated processes (port 8000 is used by an unrelated `job-outreach` process, so probes used 18xxx ports). AWS spending ceiling is $10 total; the cost ledger records the current spend.
 
 ## Request path and measurement boundaries
 
@@ -68,7 +68,7 @@ Source and artifact identities: model `models/resnet50-v2-7.onnx`, SHA-256 `7910
 - **Expected effect:** approximately 2× lower whole-batch backend time on a 2-vCPU host, and ~30–40% lower unique-request end-to-end latency if HTTP overhead is unchanged. Cache-hit latency should be unchanged (it does not enter ORT).
 - **Before/after data, variability, correctness, errors, confounders, and conclusion:** AWS unique-input p50 improved 37.0%/45.4%/42.4% at concurrency 1/2/4; throughput improved 80.9%/95.7%/84.5%. Backend p50 improved 56.0%/54.5%/48.7% against the prior 4-thread instrumented run. Repeated/cache-hit p50 and throughput were unchanged, as expected. Two runs per variant were stable (changed c1 p50 149.850/149.858 ms; c4 398.715/409.098 ms), and alternating order did not reverse the effect. All 360 requests per run succeeded. Confounders: the client shares the CPU; the backend baseline is a different session; each level has 60 samples; p99 is unstable. Conclusion: the hypothesis is supported for this single-host synthetic workload; no production or multi-host claim is made.
 - **Correctness tests and comparison design:** unit/integration checks of the effective thread count and output parity between 2 and 4 threads; then matched AWS `c6i.large` baseline (pinned source, 4 threads) vs changed source (default 2 threads), same model, runtime, workload, cache state, warm-up, request counts and concurrency. Report per-level p50/p95, throughput, errors, and run-to-run variation. Do not claim p99 from 60 samples.
-- **Remaining budget:** seven runs are estimated at $0.024787 of the $5 target, leaving about $4.975 before tax, transfer, or billing adjustments. Cost Explorer reported $0.000000 for the period at the time of writing, but billing data can be delayed, so the ledger estimate is the conservative figure. Each new run retains logs locally and verifies cleanup before another paid operation.
+- **Remaining budget:** seven runs were estimated at $0.024787 of the $10 ceiling; see the cost ledger for the current total before tax, transfer, or billing adjustments. Cost Explorer reported $0.000000 for the period at the time of writing, but billing data can be delayed, so the ledger estimate is the conservative figure. Each new run retains logs locally and verifies cleanup before another paid operation.
 - **Intended files:** `src/inference_engine.cpp` (thread selection and log), `benchmark-aws/controller.py` and `benchmark-aws/verify_source.py` (delivery allowlist), `tests/test_instrumented_worker.py` (opt-in thread/output parity test), `tests/test_source_delivery.py` (allowlist regression), `benchmark-aws/README.md` and `docs/timing-instrumentation.md` (delivery documentation), `docs/investigation/FINDINGS.md` (evidence), plus the final README/results update and resume.
 - **Rollback:** remove the capacity-aware branch and restore `SetIntraOpNumThreads(4)`; no data or API migration.
 
@@ -76,7 +76,7 @@ Source and artifact identities: model `models/resnet50-v2-7.onnx`, SHA-256 `7910
 
 - **Implemented:** `src/inference_engine.cpp` now selects `min(4, hardware_concurrency)` intra-op threads (floor 1), supports `ORT_INTRA_THREADS`, and logs the effective count. The AWS delivery allowlist now includes that file; the controller and verifier check for the thread selection, and the source-delivery tests cover it.
 - **Tested, with exact outcomes:** `python3 -m unittest discover -s tests -v` → 33 tests passed, 3 skipped (the opt-in real-worker/gateway classes). All six opt-in tests passed with the changed binaries and model, including batch-deadline default/override, output parity between 2 and 4 threads within `1e-4`, and the gateway cache-hit regression guard. `ctest` in a temporary build ran `batch_timings` and `batch_shapes`; both passed, and `test_batch_shapes` passed with the real model. Local matched A/B above: 180/180 requests succeeded; c1/c2/c4 p50 improved 35%/39%/36%; throughput improved 71%/74%/63%; backend p50 roughly halved.
-- **Reviewed and by whom:** labeled self-review performed against the actual diff, tests, raw AWS summaries, cleanup records, cost ledger, and rendered resume. Independent review remains outstanding because no separate reviewer was authorized for source disclosure. Self-review found no critical or important defect; the remaining items are the stated limitations.
+- **Reviewed and by whom:** labeled self-review performed against the actual diff, tests, raw AWS summaries, cleanup records, cost ledger, and rendered resume. Independent review was not performed for that cycle; the later admission change received an independent verifier review. Self-review found no critical or important defect; the remaining items are the stated limitations.
 - **Not tested or blocked:** no current blocker. Cycle 2 (HTTP nodelay) is accepted and documented in [EXPERIMENTS.md](EXPERIMENTS.md). Model accuracy was not assessed because the inputs are synthetic and the model has no ground-truth labels in this workload. The resume's independent visual review is the owner's responsibility.
 - **Risks and next steps:** the performance result is single-host and synthetic; do not generalize to production or multi-host. The backend baseline is from a different session than the changed runs. Cycle 5 candidates are ranked in [EXPERIMENTS.md](EXPERIMENTS.md); the next bounded investigation is gateway logging/JSON overhead. Run `python3 docs/investigation/audit.py` and review the diff before any commit.
 
@@ -111,6 +111,15 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 - The admission tests cover `/infer`, `/infer_tensor`, negative and out-of-range configuration, prove the rejected request never reaches the worker, and check release after a malformed request.
 - Local 2-worker, 50 req/s open-loop runs: baseline accepted all requests but p95 was 5.6–8.4 s; admission limit 7 accepted 260–286 of 500 with p95 372.0–376.3 ms and p99 386.8–399.0 ms. The rest were controlled 503s. At 100 req/s, the baseline p95 was 24.4 s; admission accepted 296 of 1,000 with p95 387.3 ms and 704 controlled 503s.
 - This protects accepted latency; it does not add capacity. The result is local, uses static limits, and has no client retry policy. See `docs/overload-protection.md`.
+
+## AWS admission validation (cycle 9)
+
+- Ran the paired matrix on AWS: 1 `c6i.large` gateway, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator in `us-east-1`, `least_loaded`, 25/50/100 req/s, 10 s, 3 repeats.
+- At 25 req/s: baseline p95 1,511–1,581 ms; admission 7 p95 324–331 ms with 16 controlled 503s (6.4%).
+- At 50 req/s: baseline p95 12,431–21,549 ms; the high end includes five gateway-worker retries, and the other two runs were 12.4–12.7 s. Admission 7 p95 339–340 ms with 263–266 controlled 503s (52.6–53.2%).
+- At 100 req/s: baseline p95 28,829–29,209 ms and 122–134 client timeouts; admission 7 p95 343–344 ms with 765 controlled 503s (76.5%) and no timeouts.
+- Both workers reached about 100% of their 2 vCPUs; gateway CPU stayed below about 15%. Admission bounds the queue, not capacity. Cost $0.1326; cleanup verified.
+- See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-aws-admission-validation.json`.
 
 ## Portfolio and repository handoff
 

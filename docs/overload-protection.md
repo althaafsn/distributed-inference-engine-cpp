@@ -116,24 +116,48 @@ At 50 and 100 requests/s, the baseline accepted every request but took 15–35 s
 - A real client must honor `Retry-After` and retry with jitter. The load generator does not retry, so the 503 fraction is a property of the offered concurrency, not a client policy.
 - At 25 requests/s, the limit is close to the natural in-flight count, so short bursts can still be shed. That run is not evidence of a latency improvement.
 
+## AWS multi-host validation
+
+Topology: one `c6i.large` gateway, two `c6i.large` workers, and one `c6i.xlarge` load generator in `us-east-1`. Routing was `least_loaded`; the workers used 2 ORT threads each. The workload was ResNet50-v2-7 with 500 unique images, `CACHE_CAPACITY=1`, binary transport, 10 seconds per run, and 128 load connections. Each rate has three repeats. The gateway log for every condition reports `Admission max in-flight: disabled` for baseline or `7` for admission.
+
+| Offered load | Baseline accepted | Baseline p95 | Baseline client timeouts | Admission accepted | Admission 503s | Admission p95 | Admission p99 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 25 req/s | 250 / 250 | 1,511–1,581 ms | 0 | 234 / 250 | 16 (6.4%) | 324–331 ms | 339–342 ms |
+| 50 req/s | 500 / 500 | 12,431–21,549 ms | 0 | 234–237 / 500 | 263–266 (52.6–53.2%) | 339–340 ms | 343–346 ms |
+| 100 req/s | 866–878 / 1,000 | 28,829–29,209 ms | 122–134 | 235 / 1,000 | 765 (76.5%) | 343–344 ms | 355–360 ms |
+
+- Accepted throughput was about 23.0 requests/s in every admission run. Baseline successful throughput was 22.6 requests/s at 25, 15.6–22.1 requests/s at 50, and 21.6 requests/s at 100. Admission does not add capacity; it prevents queue waste and client timeouts.
+- At 100 req/s the gateway accepted all 1,000 baseline requests, had 72–82 still in flight when metrics were captured, and rejected none. The load client timed out on 122–134 requests at its 30-second limit. Admission returned 765 controlled `503`s, had zero requests in flight at capture, and produced no timeouts.
+- The first baseline 50 req/s run recorded five gateway-to-worker retries (`failed: no response`) and 505 worker completions for 500 client requests. Its 21.5 s p95 and 32.0 s wall include that transient; the other two baseline runs were 12.4–12.7 s p95 and 22.6–22.8 s wall. The conclusion does not depend on the high end.
+- Both workers reached about 100% of their 2 vCPUs in the busiest 10-second window in every condition. Gateway CPU stayed below about 15%. The workers are the bottleneck; admission bounds the queue rather than idling the workers.
+- All admission failures were controlled `503` responses. There were no other 5xx responses.
+- The run used 4 instances for 17 minutes 40 seconds. Estimated cost is **$0.1326** (exact estimate $0.132578). Cleanup verified that all instances were terminated and all volumes and security groups were removed.
+- This is one topology in one region. It does not prove multi-AZ, autoscaling, production traffic, or a client retry policy. The load generator does not retry after `503`.
+
+Sanitized artifact: `benchmarks/results/2026-11-04-aws-admission-validation.json`. Raw run: `benchmark-aws/runs/infer-8449738a5d8c568d` (ignored, local).
+
 ## Limits
 
-- Local host, not AWS `c6i.large`.
-- Two workers, not 1/2/4/8.
-- Three 10-second runs at 50 requests/s; one run each at 25 and 100 requests/s.
-- Worker CPU was not collected. The harness records client CPU only.
+- Local 16-core host and one AWS topology: 1 `c6i.large` gateway, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator.
+- Two workers; no 1/4/8-worker AWS comparison.
+- AWS: three 10-second runs per rate. Local: one run each at 25 and 100 requests/s, three at 50.
+- Worker CPU was collected on AWS; local runs record client CPU only.
 - The load generator is open-loop but does not implement retry/backoff.
-- The client, gateway, and workers share one host CPU. Client-side queueing can contribute to baseline latency at 128 connections.
+- Local runs share one host CPU. AWS separates the load, gateway, and workers.
+- The AWS load generator uses a 30-second client timeout; a real client may use a different timeout.
+- The admission limit of 7 was carried from the local 2-worker test and was not tuned on AWS.
 - The admission limit is static and manually selected. A production control plane would derive it from model, worker count, and SLO.
 - No TLS, authentication, per-user quota, metrics export, or public deployment.
-- Raw runs remain under `/tmp/opencode/final-*`; they can be lost. The sanitized JSON records the derived values and binary hashes.
+- Raw local runs remain under `/tmp/opencode/final-*`; the AWS raw run is under `benchmark-aws/runs/infer-8449738a5d8c568d`. These are ignored and can be lost. The sanitized JSON records the derived values and source hashes.
 - The benchmark is not a production availability claim.
 
 ## Artifacts
 
-- Sanitized summary: `benchmarks/results/2026-11-04-overload-protection.json`.
+- Local sanitized summary: `benchmarks/results/2026-11-04-overload-protection.json`.
+- AWS sanitized summary: `benchmarks/results/2026-11-04-aws-admission-validation.json`.
 - Tests: `tests/test_admission_control.py` covers `/infer`, `/infer_tensor`, negative and out-of-range configuration, and release after a malformed request.
-- Raw runs: `/tmp/opencode/final-*` (ignored, temporary).
+- Raw local runs: `/tmp/opencode/final-*` (ignored, temporary).
+- Raw AWS run: `benchmark-aws/runs/infer-8449738a5d8c568d` (ignored, local).
 
 ## Rollback
 

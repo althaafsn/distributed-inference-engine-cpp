@@ -61,6 +61,38 @@ class FreshCacheTests(unittest.TestCase):
                 multihost_controller.require_fresh_health(health, "worker-1")
 
 
+class HoldMatrixTests(unittest.TestCase):
+    def test_matrix_alternates_baseline_and_admission(self):
+        self.assertEqual(
+            multihost_controller.hold_sequence([50], 7, 3, True),
+            [
+                (50, 0, 0),
+                (50, 7, 0),
+                (50, 7, 1),
+                (50, 0, 1),
+                (50, 0, 2),
+                (50, 7, 2),
+            ],
+        )
+
+    def test_matrix_runs_each_rate(self):
+        self.assertEqual(
+            multihost_controller.hold_sequence([25, 100], 7, 1, True),
+            [(25, 0, 0), (25, 7, 0), (100, 0, 0), (100, 7, 0)],
+        )
+
+    def test_single_hold_uses_one_condition(self):
+        self.assertEqual(
+            multihost_controller.hold_sequence([50], 7, 3, False),
+            [(50, 7, 0)],
+        )
+
+    def test_gateway_env_passes_admission_limit(self):
+        environment = multihost_controller.gateway_env("least_loaded", 7)
+        self.assertIn("ADMISSION_MAX_INFLIGHT=7", environment)
+        self.assertIn("ROUTING_POLICY=least_loaded", environment)
+
+
 class RunIdTests(unittest.TestCase):
     def test_invalid_run_id_is_rejected(self):
         with self.assertRaises(ValueError):
