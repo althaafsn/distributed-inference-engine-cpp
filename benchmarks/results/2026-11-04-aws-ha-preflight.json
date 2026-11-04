@@ -35,7 +35,7 @@
     "spent_usd": 3.565888,
     "remaining_budget_usd": 6.434112
   },
-  "decision": "completed: ALB failover works but takes 16.576 s and exposes 502/504 during the health-check window; local proxy remains faster",
+  "decision": "completed: the ALB target health state changed after 16.576 s and client-visible 502/504 errors continued to about 24.3 s; the local proxy remains faster",
   "elb_permissions": {
     "status": "ok",
     "target_groups": []
@@ -68,7 +68,8 @@
     },
     "estimated_cost_usd": 0.074941,
     "cleanup": "verified",
-    "client_visible_window_seconds_approx": "5.3 to 14.3",
-    "failover_note": "16.576 s is the TargetHealth observation; request IDs show 502/504 from about 5.3 s to about 14.3 s after the load marker."
+    "failover_note": "16.576 s is the TargetHealth observation. Request IDs show dead-target 502/504 requests starting from about 5.3 s to about 14.3 s after the load marker; the last 504 completed about 24.3 s because it waited the 10 s client timeout.",
+    "dead_target_request_starts_seconds_approx": "5.3 to 14.3",
+    "client_visible_error_completion_seconds_approx": "5.3 to 24.3"
   }
 }

@@ -77,6 +77,22 @@ def choose_subnets(subnets: list[dict]) -> list[dict]:
     return [by_az[az] for az in sorted(by_az)[:2]]
 
 
+def preflight_failures(result: dict) -> list[str]:
+    failures = []
+    if result.get("active_tagged_instances"):
+        failures.append("active tagged instances exist")
+    if result.get("active_tagged_volumes"):
+        failures.append("tagged volumes exist")
+    if result.get("load_balancers"):
+        failures.append("load balancers exist; remove them before a run")
+    elb = result.get("elb_permissions", {})
+    if elb.get("status") != "ok":
+        failures.append("required ELB permissions are missing")
+    elif elb.get("target_groups"):
+        failures.append("target groups exist; remove them before a run")
+    return failures
+
+
 def run_preflight() -> int:
     context = controller.preflight()
     subnets = controller.aws(
@@ -149,11 +165,10 @@ def run_preflight() -> int:
         "cost": estimate(),
     }
     print(json.dumps(result, indent=2))
-    return (
-        0
-        if not active_instances and not active_volumes and elb_permissions["status"] == "ok"
-        else 1
-    )
+    failures = preflight_failures(result)
+    for failure in failures:
+        print(f"PREFLIGHT FAILED: {failure}", file=sys.stderr)
+    return 0 if not failures else 1
 
 
 def main(argv: list[str] | None = None) -> int:

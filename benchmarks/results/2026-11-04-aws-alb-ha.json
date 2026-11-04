@@ -112,11 +112,12 @@
         "gateway-1": {
           "accepted": 47,
           "rejected": 48,
-          "note": "snapshot about 2 s after load start; final counters unavailable after termination"
+          "note": "phase delta from the pre-kill snapshot: 47/48 = raw 164/181 minus normal 117/133; final gateway-1 counters are unavailable after termination"
         },
         "gateway-2": {
           "accepted": 391,
-          "rejected": 259
+          "rejected": 259,
+          "note": "phase delta from the normal final counters: 391/259 = 506/394 minus 115/135"
         }
       },
       "gateway1_before_kill": {
@@ -166,7 +167,19 @@
     "observed_failover_seconds": 16.576,
     "kill_requested_seconds": null,
     "kill_requested_note": "The harness did not record the request time in this run; the EC2 transition was about 5 s after the load marker.",
-    "observed_failover_note": "TargetHealth API first reported unhealthy after 16.576 s. Request IDs show new 502/504 responses starting about 5.3 s after the load marker and no new dead-target routing after about 14.3 s; this is a health-state observation, not the full client-visible routing window."
+    "observed_failover_note": "TargetHealth first reported unhealthy 16.576 s after the termination request. Request IDs (inferred starts at 50 req/s) show dead-target 502/504 requests starting about 5.3 s and the last one starting about 14.3 s after the load marker. Client-visible errors began about 5.3 s; the last 504 completed about 24.3 s because it waited the 10 s client timeout. The 16.576 s value is a health-state observation, not the client-visible error window.",
+    "error_window": {
+      "dead_target_request_starts_seconds_approx": [
+        5.26,
+        14.28
+      ],
+      "client_visible_completion_seconds_approx": [
+        5.26,
+        24.28
+      ],
+      "last_504_latency_ms": 10002.475,
+      "note": "Request starts are inferred from sequential IDs at 50 offered req/s; the scheduler start delay is not recorded."
+    }
   },
   "cost": {
     "instance_runtime_seconds": {
@@ -184,7 +197,7 @@
   "notes": [
     "Normal and recovery 503s are gateway admission rejections; the per-gateway limit is 4 (total 8).",
     "In failover, 326 503s are admission rejections; 180 502s and 39 504s are ALB-generated while the terminated target was still considered healthy.",
-    "The ALB target became unhealthy 16.576 s after termination; the 5 s health-check interval and 2 unhealthy checks set the detection floor.",
+    "The ALB target health state changed to unhealthy 16.576 s after the termination request; the 5 s health-check interval and 2 unhealthy checks set the detection floor. Client-visible 502/504 errors began about 5.3 s and the last 504 completed about 24.3 s.",
     "The local aiohttp HA proxy used 1 s checks and connection-error retry, so it had no client-visible failover errors. The ALB path is slower.",
     "The ALB spans two AZs; all instances and targets are in one subnet/AZ. This is not a multi-AZ failover test.",
     "No public listener, TLS, authentication, or global admission limit. One run, not a production availability claim."

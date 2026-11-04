@@ -220,7 +220,7 @@ Sanitized artifact: `benchmarks/results/2026-11-04-gateway-ha.json`.
 
 ### AWS internal-ALB result
 
-Topology: 2 `c6i.large` gateways, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator, and an internal Application Load Balancer. 50 offered requests/s, 128 connections, per-gateway admission limit 4 (total 8). Normal and recovery phases were 10 seconds; failover was 20 seconds with gateway 1 terminated after 2 seconds.
+Topology: 2 `c6i.large` gateways, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator, and an internal Application Load Balancer. 50 offered requests/s, 128 connections, per-gateway admission limit 4 (total 8). Normal and recovery phases were 10 seconds; failover was 20 seconds, and gateway 1 termination was requested about 5 seconds after the load marker (2 s sleep plus a stats snapshot).
 
 | Phase | Successes | 503 | 502 | 504 | p95 | p99 | Accepted throughput |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -230,7 +230,7 @@ Topology: 2 `c6i.large` gateways, 2 `c6i.large` workers, 1 `c6i.xlarge` load gen
 
 Latency percentiles cover successful HTTP 200 responses only; 502/504/503 responses are counted separately.
 
-- The ALB TargetHealth API first reported the terminated gateway unhealthy after **16.576 seconds**. Request IDs show new 502/504 responses starting about 5.3 seconds after the load marker and no new dead-target routing after about 14.3 seconds. The 16.576-second value is a health-state observation, not the full client-visible routing window; the exact ALB transition is inferred because CloudTrail and CloudWatch are unavailable.
+- The ALB TargetHealth API first reported the terminated gateway unhealthy **16.576 seconds after the termination request**. Request IDs (inferred starts at 50 req/s) show dead-target 502/504 requests starting about 5.3 seconds after the load marker and the last one starting about 14.3 seconds. Client-visible errors began about 5.3 seconds; the last 504 completed about 24.3 seconds because it waited the 10-second client timeout. The 16.576-second value is a health-state observation, not the client-visible error window; the exact ALB transition is inferred because CloudTrail and CloudWatch are unavailable.
 - The ALB returned **180 × 502** and **39 × 504** during the transition. The 503s are gateway admission rejections, not ALB failures.
 - The instance was terminated about 5 seconds after the load marker, not exactly 2 seconds: the harness slept 2 seconds, then took the pre-kill stats snapshot before terminating the instance.
 - The target group uses the default 300-second deregistration delay. The planned 5-second delay was not configured; failover relies on health checks, not deregistration.
@@ -254,7 +254,7 @@ Sanitized artifact: `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 - The admission limit of 7 was carried from the local 2-worker test and was not tuned on AWS.
 - The adaptive and retry experiment is local only; no AWS adaptive or retry run was performed.
 - The gateway HA test ran locally with an aiohttp proxy and on AWS with an internal ALB. Neither is a production load balancer.
-- The AWS ALB run used one run, one subnet/AZ for all targets, no client retry for 502/504, and a health-state observation of 16.6 s. The client-visible dead-target routing began ~5.3 s after the load marker and stopped ~14.3 s.
+- The AWS ALB run used one run, one subnet/AZ for all targets, no client retry for 502/504, and a health-state observation of 16.6 s. Dead-target requests began ~5.3 s after the load marker and the last one started ~14.3 s; the last client-visible 504 completed ~24.3 s.
 - Adaptive policy constants (20 samples, 20% decrease, +1 increase, 110%/75% deadband) were chosen from first principles and not tuned across topologies.
 - Retry p95 includes the wait between attempts; it is not comparable to first-attempt latency.
 - Static mode uses a manually selected limit; adaptive mode is opt-in and was tested locally. A production control plane would also account for multiple gateways and per-client quotas.

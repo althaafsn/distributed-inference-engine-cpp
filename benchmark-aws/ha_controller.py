@@ -243,6 +243,8 @@ def create_alb(state: dict, state_path: Path) -> None:
         "HttpCode=200",
         "--target-type",
         "instance",
+        "--tags",
+        f"Key={controller.TAG_KEY},Value={state['run_id']}",
     )
     state["alb"] = {"target_group_arn": group["TargetGroups"][0]["TargetGroupArn"]}
     save_state(state_path, state)
@@ -259,6 +261,8 @@ def create_alb(state: dict, state_path: Path) -> None:
         "internal",
         "--type",
         "application",
+        "--tags",
+        f"Key={controller.TAG_KEY},Value={state['run_id']}",
     )["LoadBalancers"][0]
     state["alb"]["arn"] = load_balancer["LoadBalancerArn"]
     state["alb"]["dns"] = load_balancer["DNSName"]
@@ -276,6 +280,7 @@ def create_alb(state: dict, state_path: Path) -> None:
         f"Type=forward,TargetGroupArn={state['alb']['target_group_arn']}",
     )["Listeners"][0]
     state["alb"]["listener_arn"] = listener["ListenerArn"]
+    save_state(state_path, state)
     aws(
         "elbv2",
         "register-targets",
@@ -485,6 +490,8 @@ def delete_alb(state: dict) -> bool:
     alb = state.get("alb", {})
     if not alb:
         return True
+    ok = True
+    load_balancer_deleted = False
     for key, command_name, arg in (
         ("listener_arn", "delete-listener", "--listener-arn"),
         ("target_group_arn", "delete-target-group", "--target-group-arn"),
@@ -493,27 +500,33 @@ def delete_alb(state: dict) -> bool:
         value = alb.get(key)
         if not value:
             continue
+        deleted = False
         for attempt in range(3):
             try:
                 aws("elbv2", command_name, arg, value)
+                deleted = True
                 break
             except subprocess.CalledProcessError as exc:
                 stderr = exc.stderr or ""
                 if "NotFound" in stderr:
+                    deleted = True
                     break
                 if attempt == 2:
                     print(f"ERROR deleting ALB resource {key}: {stderr}", file=sys.stderr)
-                    return False
-                time.sleep(3)
-    if not alb.get("arn"):
-        return True
+                    ok = False
+                else:
+                    time.sleep(3)
+        if key == "arn" and deleted:
+            load_balancer_deleted = True
+    if not alb.get("arn") or not load_balancer_deleted:
+        return ok
     deadline = time.monotonic() + 180
     while time.monotonic() < deadline:
         try:
             aws("elbv2", "describe-load-balancers", "--load-balancer-arns", alb["arn"])
         except subprocess.CalledProcessError as exc:
             if "LoadBalancerNotFound" in (exc.stderr or ""):
-                return True
+                return ok
         time.sleep(3)
     print("ERROR: ALB deletion was not confirmed", file=sys.stderr)
     return False
@@ -522,7 +535,11 @@ def delete_alb(state: dict) -> bool:
 def cleanup_ha_state(state: dict) -> bool:
     if not state.get("account"):
         return True
-    alb_ok = delete_alb(state)
+    alb_ok = False
+    try:
+        alb_ok = delete_alb(state)
+    except Exception as exc:
+        print(f"ERROR deleting ALB resources: {exc}", file=sys.stderr)
     base_ok = mh.cleanup_state(state)
     return alb_ok and base_ok
 
@@ -643,6 +660,9 @@ def run(args: argparse.Namespace) -> int:
             ),
             flush=True,
         )
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        result_code = 1
     finally:
         try:
             if not cleanup_ha_state(state):

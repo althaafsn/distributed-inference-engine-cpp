@@ -72,6 +72,39 @@ class SubnetSelectionTests(unittest.TestCase):
             ha_preflight.choose_subnets(subnets)
 
 
+class PreflightFailureTests(unittest.TestCase):
+    def clean(self) -> dict:
+        return {
+            "active_tagged_instances": [],
+            "active_tagged_volumes": [],
+            "load_balancers": [],
+            "elb_permissions": {"status": "ok", "target_groups": []},
+        }
+
+    def test_clean_result_has_no_failures(self):
+        self.assertEqual(ha_preflight.preflight_failures(self.clean()), [])
+
+    def test_active_instance_fails(self):
+        result = self.clean()
+        result["active_tagged_instances"] = ["i-1"]
+        self.assertTrue(ha_preflight.preflight_failures(result))
+
+    def test_existing_load_balancer_fails(self):
+        result = self.clean()
+        result["load_balancers"] = ["alb"]
+        self.assertTrue(ha_preflight.preflight_failures(result))
+
+    def test_existing_target_group_fails(self):
+        result = self.clean()
+        result["elb_permissions"]["target_groups"] = ["tg"]
+        self.assertTrue(ha_preflight.preflight_failures(result))
+
+    def test_denied_permissions_fail(self):
+        result = self.clean()
+        result["elb_permissions"] = {"status": "denied", "target_groups": []}
+        self.assertTrue(ha_preflight.preflight_failures(result))
+
+
 class CostEstimateTests(unittest.TestCase):
     def test_estimate_stays_below_the_cap(self):
         estimate = ha_preflight.estimate()
