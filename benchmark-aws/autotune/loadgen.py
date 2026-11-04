@@ -11,6 +11,8 @@ import resource
 import struct
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 import aiohttp
@@ -35,7 +37,13 @@ def parse_retry_after(value: str | None) -> float | None:
     try:
         seconds = float(value)
     except ValueError:
-        return None
+        try:
+            when = parsedate_to_datetime(value)
+        except (TypeError, ValueError):
+            return None
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=timezone.utc)
+        seconds = (when - datetime.now(timezone.utc)).total_seconds()
     return max(0.0, seconds)
 
 
@@ -47,11 +55,12 @@ def retry_delay_seconds(
 ) -> float:
     base = config.backoff_ms / 1000.0
     exponential = min(config.max_backoff_ms / 1000.0, base * (2 ** max(0, attempt - 1)))
-    delay = max(exponential, retry_after or 0.0)
     if config.jitter > 0:
         value = random.random() if random_value is None else random_value
-        delay *= 1.0 + config.jitter * (2.0 * value - 1.0)
-    return max(0.0, delay)
+        exponential *= 1.0 + config.jitter * (2.0 * value - 1.0)
+        exponential = min(config.max_backoff_ms / 1000.0, max(0.0, exponential))
+    # Retry-After is a server minimum. Jitter must never reduce it.
+    return max(0.0, max(exponential, retry_after or 0.0))
 
 
 def percentile(values: list[float], fraction: float) -> float | None:

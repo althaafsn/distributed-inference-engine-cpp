@@ -204,7 +204,7 @@ public:
         out << "# TYPE gateway_admission_observed_p95_ms gauge\n";
         out << "gateway_admission_observed_p95_ms "
             << admission_observed_p95_ms.load(std::memory_order_relaxed) << "\n";
-        out << "# HELP gateway_admission_observed_samples Samples in the latest window.\n";
+        out << "# HELP gateway_admission_observed_samples Samples used by the last adaptive decision.\n";
         out << "# TYPE gateway_admission_observed_samples gauge\n";
         out << "gateway_admission_observed_samples "
             << admission_observed_samples.load(std::memory_order_relaxed) << "\n";

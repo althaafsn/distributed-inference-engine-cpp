@@ -2,6 +2,10 @@
   "schema_version": 1,
   "date": "2026-11-04",
   "scope": "Local adaptive admission, metrics, and retry comparison. Not an AWS or production result.",
+  "binaries": {
+    "gateway_sha256": "857b52ecf909e3b580b6ced4fc3e8fff3b7077b007810a4f1fb2481dcc4f0697",
+    "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794"
+  },
   "hardware": {
     "cpu": "AMD Ryzen 7 5800H, 16 logical CPUs",
     "workers": 2,
@@ -474,28 +478,28 @@
       "admission_mode": "static_7",
       "retry_enabled": true,
       "requests": 1000,
-      "successes": 394,
-      "failures": 606,
-      "shed_503": 606,
+      "successes": 326,
+      "failures": 674,
+      "shed_503": 674,
       "status_counts": {
-        "200": 394,
-        "503": 606
+        "200": 326,
+        "503": 674
       },
-      "accepted_rps": 29.69,
-      "wall_seconds": 13.27,
+      "accepted_rps": 24.634,
+      "wall_seconds": 13.234,
       "latency_ms": {
-        "p50": 1318.593,
-        "p95": 3391.642,
-        "p99": 3552.983
+        "p50": 1328.743,
+        "p95": 3396.708,
+        "p99": 3411.269
       },
       "retry": {
-        "attempts": 3366,
-        "retried_requests": 877,
-        "retry_successes": 271,
-        "retry_exhausted": 606
+        "attempts": 3436,
+        "retried_requests": 876,
+        "retry_successes": 202,
+        "retry_exhausted": 674
       },
       "gateway_admission": {
-        "accepted": 394,
+        "accepted": 326,
         "adaptive": false,
         "configured_max": 7,
         "in_flight": 0,
@@ -504,7 +508,7 @@
         "min_in_flight": 7,
         "observed_p95_ms": -1,
         "observed_samples": 0,
-        "rejected": 2972,
+        "rejected": 3110,
         "target_p95_ms": 400
       },
       "limit_changes": 0,
@@ -516,44 +520,45 @@
       "admission_mode": "adaptive",
       "retry_enabled": true,
       "requests": 1000,
-      "successes": 387,
-      "failures": 613,
-      "shed_503": 613,
+      "successes": 366,
+      "failures": 634,
+      "shed_503": 634,
       "status_counts": {
-        "200": 387,
-        "503": 613
+        "200": 366,
+        "503": 634
       },
-      "accepted_rps": 29.023,
-      "wall_seconds": 13.334,
+      "accepted_rps": 27.881,
+      "wall_seconds": 13.127,
       "latency_ms": {
-        "p50": 1384.95,
-        "p95": 3457.356,
-        "p99": 3651.563
+        "p50": 1253.583,
+        "p95": 3304.311,
+        "p99": 3390.889
       },
       "retry": {
-        "attempts": 3365,
-        "retried_requests": 865,
-        "retry_successes": 252,
-        "retry_exhausted": 613
+        "attempts": 3368,
+        "retried_requests": 868,
+        "retry_successes": 234,
+        "retry_exhausted": 634
       },
       "gateway_admission": {
-        "accepted": 387,
+        "accepted": 366,
         "adaptive": true,
         "configured_max": 12,
         "in_flight": 0,
-        "limit_changes": 3,
-        "max_in_flight": 7,
+        "limit_changes": 4,
+        "max_in_flight": 6,
         "min_in_flight": 2,
-        "observed_p95_ms": 393,
-        "observed_samples": 256,
-        "rejected": 2978,
+        "observed_p95_ms": 377,
+        "observed_samples": 245,
+        "rejected": 3002,
         "target_p95_ms": 400
       },
-      "limit_changes": 3,
+      "limit_changes": 4,
       "limit_trace": [
-        "Adaptive admission limit: 12 -> 10 (p95 444 ms, samples 30)",
-        "Adaptive admission limit: 10 -> 8 (p95 579 ms, samples 25)",
-        "Adaptive admission limit: 8 -> 7 (p95 571 ms, samples 25)"
+        "Adaptive admission limit: 12 -> 10 (p95 550 ms, samples 28)",
+        "Adaptive admission limit: 10 -> 8 (p95 553 ms, samples 26)",
+        "Adaptive admission limit: 8 -> 7 (p95 599 ms, samples 23)",
+        "Adaptive admission limit: 7 -> 6 (p95 483 ms, samples 27)"
       ]
     }
   ],
@@ -778,34 +783,34 @@
     "100_static_retry": {
       "runs": 1,
       "successes": {
-        "median": 394,
-        "min": 394,
-        "max": 394
+        "median": 326,
+        "min": 326,
+        "max": 326
       },
       "shed_503": {
-        "median": 606,
-        "min": 606,
-        "max": 606
+        "median": 674,
+        "min": 674,
+        "max": 674
       },
       "accepted_rps": {
-        "median": 29.69,
-        "min": 29.69,
-        "max": 29.69
+        "median": 24.634,
+        "min": 24.634,
+        "max": 24.634
       },
       "wall_seconds": {
-        "median": 13.27,
-        "min": 13.27,
-        "max": 13.27
+        "median": 13.234,
+        "min": 13.234,
+        "max": 13.234
       },
       "p95_ms": {
-        "median": 3391.642,
-        "min": 3391.642,
-        "max": 3391.642
+        "median": 3396.708,
+        "min": 3396.708,
+        "max": 3396.708
       },
       "p99_ms": {
-        "median": 3552.983,
-        "min": 3552.983,
-        "max": 3552.983
+        "median": 3411.269,
+        "min": 3411.269,
+        "max": 3411.269
       },
       "final_limits": [
         7
@@ -814,37 +819,37 @@
     "100_adaptive_retry": {
       "runs": 1,
       "successes": {
-        "median": 387,
-        "min": 387,
-        "max": 387
+        "median": 366,
+        "min": 366,
+        "max": 366
       },
       "shed_503": {
-        "median": 613,
-        "min": 613,
-        "max": 613
+        "median": 634,
+        "min": 634,
+        "max": 634
       },
       "accepted_rps": {
-        "median": 29.023,
-        "min": 29.023,
-        "max": 29.023
+        "median": 27.881,
+        "min": 27.881,
+        "max": 27.881
       },
       "wall_seconds": {
-        "median": 13.334,
-        "min": 13.334,
-        "max": 13.334
+        "median": 13.127,
+        "min": 13.127,
+        "max": 13.127
       },
       "p95_ms": {
-        "median": 3457.356,
-        "min": 3457.356,
-        "max": 3457.356
+        "median": 3304.311,
+        "min": 3304.311,
+        "max": 3304.311
       },
       "p99_ms": {
-        "median": 3651.563,
-        "min": 3651.563,
-        "max": 3651.563
+        "median": 3390.889,
+        "min": 3390.889,
+        "max": 3390.889
       },
       "final_limits": [
-        7
+        6
       ]
     }
   },

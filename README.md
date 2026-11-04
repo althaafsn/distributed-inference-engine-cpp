@@ -35,7 +35,7 @@ These results are not a production-readiness claim. TLS, authentication, rate li
 
 ## Production hardening
 
-The worker and gateway now handle `SIGTERM` and `SIGINT` with a bounded shutdown, fail queued batch work instead of leaving handlers blocked, return HTTP 400 for malformed JSON inference requests, and have a loopback worker-failure test. CI builds the real C++ targets with pinned ONNX Runtime and runs the real-model loopback tests. The shutdown and failover evidence is loopback-only. TLS, authentication, rate limiting, metrics export, model versioning, and multi-AZ replacement remain open. See [production hardening](docs/production-hardening.md).
+The worker and gateway now handle `SIGTERM` and `SIGINT` with a bounded shutdown, fail queued batch work instead of leaving handlers blocked, return HTTP 400 for malformed JSON inference requests, and have a loopback worker-failure test. CI builds the real C++ targets with pinned ONNX Runtime and runs the real-model loopback tests. The shutdown and failover evidence is loopback-only. TLS, authentication, rate limiting, model versioning, and multi-AZ replacement remain open. Prometheus scraping and dashboards are not deployed. See [production hardening](docs/production-hardening.md).
 
 ## Overload protection
 

@@ -241,9 +241,9 @@ public:
 
     std::optional<AdmissionGuard> admitRequest() {
         maybeUpdateAdmissionLimit();
-        const int64_t limit = metrics_.admission_limit.load(std::memory_order_relaxed);
         int64_t current = metrics_.admission_in_flight.load(std::memory_order_relaxed);
         while (true) {
+            const int64_t limit = metrics_.admission_limit.load(std::memory_order_relaxed);
             if (limit > 0 && current >= limit) {
                 metrics_.admission_rejected.fetch_add(1, std::memory_order_relaxed);
                 return std::nullopt;

@@ -104,6 +104,18 @@ class RetryPolicyTests(unittest.TestCase):
         config = loadgen.RetryConfig(attempts=1, backoff_ms=10, jitter=0)
         self.assertAlmostEqual(loadgen.retry_delay_seconds(1, config, 0.5), 0.5)
 
+    def test_retry_after_is_not_reduced_by_jitter(self):
+        config = loadgen.RetryConfig(attempts=1, backoff_ms=1000, jitter=0.2)
+        self.assertAlmostEqual(loadgen.retry_delay_seconds(1, config, 1.0, random_value=0.0), 1.0)
+
+    def test_jittered_backoff_respects_cap(self):
+        config = loadgen.RetryConfig(attempts=4, backoff_ms=250, max_backoff_ms=250, jitter=0.2)
+        self.assertAlmostEqual(loadgen.retry_delay_seconds(4, config, random_value=1.0), 0.25)
+
+    def test_http_date_retry_after(self):
+        self.assertEqual(loadgen.parse_retry_after("Wed, 21 Oct 2015 07:28:00 GMT"), 0.0)
+        self.assertGreater(loadgen.parse_retry_after("Wed, 21 Oct 2099 07:28:00 GMT"), 0.0)
+
     def test_jitter_bounds(self):
         config = loadgen.RetryConfig(attempts=1, backoff_ms=100, jitter=0.2)
         self.assertAlmostEqual(loadgen.retry_delay_seconds(1, config, random_value=0.0), 0.08)

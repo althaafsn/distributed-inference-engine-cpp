@@ -27,7 +27,7 @@ inline std::size_t nextAdmissionLimit(
     }
     if (observed_p95_ms * 10 > target_p95_ms * 11) {
         const std::size_t step = std::max<std::size_t>(1, clamped / 5);
-        return clamped > step ? clamped - step : min_limit;
+        return std::max(min_limit, clamped > step ? clamped - step : min_limit);
     }
     if (observed_p95_ms * 4 < target_p95_ms * 3) {
         return std::min(max_limit, clamped + 1);
