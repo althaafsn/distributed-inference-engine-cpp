@@ -259,16 +259,32 @@ def cleanup_state(state: dict) -> bool:
         if not controller.wait_for_termination(instance_ids, timeout_seconds=300):
             print("ERROR: instance termination unverified", file=sys.stderr)
             return False
-    for name in ("worker", "gateway", "load", "ssh"):
-        group_id = state.get("groups", {}).get(name)
-        if not group_id:
-            continue
-        try:
-            aws("ec2", "delete-security-group", "--group-id", group_id)
-        except subprocess.CalledProcessError as exc:
-            if "InvalidGroup.NotFound" not in (exc.stderr or ""):
-                print(f"ERROR deleting group {name}: {exc.stderr}", file=sys.stderr)
-                return False
+    pending = {
+        name: state.get("groups", {}).get(name)
+        for name in ("worker", "gateway", "load", "ssh", "alb")
+        if state.get("groups", {}).get(name)
+    }
+    deadline = time.monotonic() + 180
+    while pending:
+        for name, group_id in list(pending.items()):
+            try:
+                aws("ec2", "delete-security-group", "--group-id", group_id)
+                pending.pop(name)
+            except subprocess.CalledProcessError as exc:
+                stderr = exc.stderr or ""
+                if "InvalidGroup.NotFound" in stderr:
+                    pending.pop(name)
+                elif any(code in stderr for code in ("DependencyViolation", "InvalidGroup.InUse")):
+                    continue
+                else:
+                    print(f"ERROR deleting group {name}: {stderr}", file=sys.stderr)
+                    return False
+        if not pending:
+            break
+        if time.monotonic() >= deadline:
+            print("ERROR: security groups still in use", file=sys.stderr)
+            return False
+        time.sleep(5)
     print("Cleanup verified: all recorded instances terminated and groups removed.", flush=True)
     return True
 

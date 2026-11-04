@@ -75,7 +75,20 @@ One `c6i.large` gateway, two `c6i.large` workers, and one `c6i.xlarge` load gene
 | Load generator | c6i.xlarge | 1057 | $0.049914 | $0.001468 | $0.000391 | $0.051773 |
 | **Total** | | **4,242** | **$0.125115** | **$0.005892** | **$0.001571** | **$0.132578** |
 
-Grand total: **$0.044703 + $3.267337 + $0.132578 = $3.444618**. The remaining budget is about **$6.56**.
+## Failed ALB HA attempt (2026-11-04)
+
+Five instances ran for 170–178 seconds. The run failed at `CreateTargetGroup` because the deploy user lacks ELB target-group permissions. No ALB or target group was created. All instances were terminated; volumes and security groups were removed.
+
+| Resource | Type | Seconds | Compute | IPv4 | 12 GB gp3 | Estimated subtotal |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Gateway 1 | c6i.large | 178 | $0.004203 | $0.000247 | $0.000066 | $0.004516 |
+| Gateway 2 | c6i.large | 176 | $0.004156 | $0.000244 | $0.000065 | $0.004465 |
+| Worker 1 | c6i.large | 174 | $0.004108 | $0.000242 | $0.000064 | $0.004414 |
+| Worker 2 | c6i.large | 172 | $0.004061 | $0.000239 | $0.000064 | $0.004364 |
+| Load generator | c6i.xlarge | 170 | $0.008028 | $0.000236 | $0.000063 | $0.008327 |
+| **Total** | | **870** | **$0.024556** | **$0.001208** | **$0.000322** | **$0.026086** |
+
+Grand total: **$0.044703 + $3.267337 + $0.132578 + $0.026086 = $3.470704**. The remaining budget is about **$6.53**.
 
 For the multi-host table, `exact` means the interval from EC2 `LaunchTime` to the recorded termination time. `log` means the console-log end time minus the recorded run start time, because AWS had already aged the instance records out of `describe-instances`. The `log` method includes provisioning and cleanup, so it is conservative. The two failover timeout rows include the full wait time before cleanup.
 

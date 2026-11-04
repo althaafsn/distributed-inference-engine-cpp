@@ -138,6 +138,12 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 - The proxy removes the gateway single point of failure in this local test. Admission is still local: the surviving gateway keeps its limit, so total admission capacity drops during failover. A production design needs a shared/global limiter or load-balancer-aware limits.
 - Cost $0; local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-gateway-ha.json`.
 
+## AWS ALB attempt (blocked)
+
+- The 2026-11-04 internal-ALB attempt launched five instances and prepared the gateways and workers, then failed at `CreateTargetGroup` because the deploy user lacks `elasticloadbalancing:CreateTargetGroup` and `DescribeTargetGroups`.
+- No ALB, listener, or target group was created. All instances were terminated; volumes and groups were removed. Cost $0.026086.
+- Do not claim an AWS ALB HA result. Grant `benchmark-aws/iam-ha-elb-policy.json` or use a fallback load balancer before retrying.
+
 ## Portfolio and repository handoff
 
 - **Upstream work versus the owner's specific contribution:** upstream authored the gateway, cache, batching, and ORT backend. This investigation adds capacity-aware ORT threads, `TCP_NODELAY` on keep-alive paths, input-shape alignment, and a 10 ms batch deadline, plus their tests and evidence; inherited benchmark and instrumentation work is attributed separately.

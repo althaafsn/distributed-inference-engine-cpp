@@ -218,6 +218,10 @@ Topology: 2 workers, 2 gateways, 1 proxy, 50 offered requests/s, 10-second phase
 
 Sanitized artifact: `benchmarks/results/2026-11-04-gateway-ha.json`.
 
+### AWS ALB attempt (blocked)
+
+A 2026-11-04 internal-ALB follow-up launched five instances and prepared them, but the deploy user lacked `elasticloadbalancing:CreateTargetGroup` and `DescribeTargetGroups`. The run stopped before creating the ALB or running load. All instances were terminated; volumes and security groups were removed. Estimated cost was **$0.0261**. The local HA result above remains the evidence. The preflight now checks the ELB permission and lists the required actions in `benchmark-aws/iam-ha-elb-policy.json`.
+
 ## Limits
 
 - Local 16-core host and one AWS topology: 1 `c6i.large` gateway, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator.

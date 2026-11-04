@@ -32,8 +32,33 @@
     "estimate_45_min_usd": 0.4291,
     "estimate_60_min_usd": 0.5722,
     "cap_usd": 1.5,
-    "spent_usd": 3.444618,
-    "remaining_budget_usd": 6.555382
+    "spent_usd": 3.470704,
+    "remaining_budget_usd": 6.529296
   },
-  "decision": "awaiting spend approval before launch"
+  "decision": "blocked: grant the ELB target-group/load-balancer actions or use a fallback load balancer",
+  "elb_permissions": {
+    "status": "denied",
+    "required_actions": [
+      "elasticloadbalancing:CreateTargetGroup",
+      "elasticloadbalancing:DeleteTargetGroup",
+      "elasticloadbalancing:DescribeTargetGroups",
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "elasticloadbalancing:CreateListener",
+      "elasticloadbalancing:DeleteListener",
+      "elasticloadbalancing:RegisterTargets",
+      "elasticloadbalancing:DeregisterTargets",
+      "elasticloadbalancing:DescribeTargetHealth"
+    ],
+    "note": "The deploy user lacks elasticloadbalancing:DescribeTargetGroups and CreateTargetGroup."
+  },
+  "failed_attempt": {
+    "run_id": "infer-c1bb16d75e82a931",
+    "reason": "AccessDenied on elasticloadbalancing:CreateTargetGroup/DescribeTargetGroups before the load phase",
+    "instances": 5,
+    "runtime_seconds": 178,
+    "estimated_cost_usd": 0.026086,
+    "cleanup": "verified: instances terminated, volumes and security groups removed, no ALB created"
+  }
 }

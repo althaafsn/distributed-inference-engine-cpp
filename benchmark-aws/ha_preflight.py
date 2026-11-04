@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,8 +22,21 @@ IPV4_HOURLY = 0.005
 GP3_GB_MONTH = 0.08
 GB_PER_INSTANCE = 12
 BUDGET_USD = 10.0
-SPENT_USD = 3.444618
+SPENT_USD = 3.470704
 CAP_USD = 1.50
+REQUIRED_ELB_ACTIONS = [
+    "elasticloadbalancing:CreateTargetGroup",
+    "elasticloadbalancing:DeleteTargetGroup",
+    "elasticloadbalancing:DescribeTargetGroups",
+    "elasticloadbalancing:CreateLoadBalancer",
+    "elasticloadbalancing:DeleteLoadBalancer",
+    "elasticloadbalancing:DescribeLoadBalancers",
+    "elasticloadbalancing:CreateListener",
+    "elasticloadbalancing:DeleteListener",
+    "elasticloadbalancing:RegisterTargets",
+    "elasticloadbalancing:DeregisterTargets",
+    "elasticloadbalancing:DescribeTargetHealth",
+]
 
 
 def estimate() -> dict:
@@ -107,6 +121,22 @@ def run_preflight() -> int:
         "--output",
         "json",
     )
+    try:
+        target_groups = controller.aws(
+            "elbv2",
+            "describe-target-groups",
+            "--query",
+            "TargetGroups[].TargetGroupName",
+            "--output",
+            "json",
+        )
+        elb_permissions = {"status": "ok", "target_groups": target_groups}
+    except subprocess.CalledProcessError as exc:
+        elb_permissions = {
+            "status": "denied",
+            "error": (exc.stderr or "").strip(),
+            "required_actions": REQUIRED_ELB_ACTIONS,
+        }
     result = {
         "account": context["account"],
         "region": context["region"],
@@ -115,10 +145,15 @@ def run_preflight() -> int:
         "active_tagged_instances": active_instances,
         "active_tagged_volumes": active_volumes,
         "load_balancers": load_balancers,
+        "elb_permissions": elb_permissions,
         "cost": estimate(),
     }
     print(json.dumps(result, indent=2))
-    return 0 if not active_instances and not active_volumes else 1
+    return (
+        0
+        if not active_instances and not active_volumes and elb_permissions["status"] == "ok"
+        else 1
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

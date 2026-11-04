@@ -79,6 +79,8 @@ python3 benchmark-aws/run_ha.py \
 
 The script runs normal, failover, and recovery phases. Failover terminates gateway 1 after 2 seconds; recovery restarts it. The proxy and its health checks are a local test harness, not a production load balancer. `summarize_ha.py` regenerates the sanitized artifact from the raw run directories.
 
+The AWS ALB controller (`ha_controller.py`) requires the ELB actions in `iam-ha-elb-policy.json`. Run `ha_preflight.py preflight` before launching; it now fails if `DescribeTargetGroups` is denied. The current deploy user cannot attach the policy. An nginx host is a fallback, but that host is a single point of failure.
+
 See the [full image benchmark report](../docs/autotune-benchmark.md) and the [sanitized summary](../benchmarks/results/2026-11-02-autotune-summary.json). Estimated campaign cost was $3.31 of the $10 ceiling. Treat these as benchmark results, not production readiness.
 
 ## Recovery

@@ -215,6 +215,19 @@ This is the resumable record for [CONTINUOUS-OPTIMIZATION.md](CONTINUOUS-OPTIMIZ
 | Cost | Local only; $0. |
 | Limits | Custom aiohttp proxy, not a production load balancer; one host; 3 runs; 1 s health interval; no TLS, connection draining, multi-host, or AWS run; no global admission guarantee. |
 
+## AWS ALB HA attempt (2026-11-04) — blocked by IAM
+
+| Field | Record |
+| --- | --- |
+| Hypothesis | A real internal ALB can fail over between two gateways on separate EC2 hosts. |
+| Baseline | Cycle-11 local HA result. |
+| Change | Add an internal-ALB controller with two gateways, a target group, health checks, failover, and recovery. |
+| Workload | 5 instances (2 gateways, 2 workers, 1 load generator); the run stopped at `CreateTargetGroup` before any load phase. |
+| Verification | Instances launched and gateways/workers prepared; the deploy user returned AccessDenied for `elasticloadbalancing:CreateTargetGroup`/`DescribeTargetGroups`; no ALB or target group was created; all instances terminated and volumes/groups removed. |
+| Decision | Blocked. Do not claim an AWS ALB result. Grant `benchmark-aws/iam-ha-elb-policy.json` or use a non-ALB fallback, then rerun. |
+| Cost | $0.026086 for five instances over 170–178 seconds. |
+| Limits | The local HA result remains the only HA evidence; the ALB path is untested. |
+
 ## Stop condition and future work
 
 Cycle 6 closed the multi-host capacity item for the tested workload; cycle 9 validated admission control on a separate multi-host topology. The remaining constraints are production concerns, not single-variable performance candidates: TLS and authentication, rate limiting and backpressure, graceful shutdown, Prometheus scraping and dashboards, model versioning, multi-AZ replacement, and a long-duration soak.
