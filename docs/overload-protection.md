@@ -218,9 +218,24 @@ Topology: 2 workers, 2 gateways, 1 proxy, 50 offered requests/s, 10-second phase
 
 Sanitized artifact: `benchmarks/results/2026-11-04-gateway-ha.json`.
 
-### AWS ALB attempt (blocked)
+### AWS internal-ALB result
 
-A 2026-11-04 internal-ALB follow-up launched five instances and prepared them, but the deploy user lacked `elasticloadbalancing:CreateTargetGroup` and `DescribeTargetGroups`. The run stopped before creating the ALB or running load. All instances were terminated; volumes and security groups were removed. Estimated cost was **$0.0261**. The local HA result above remains the evidence. The preflight now checks the ELB permission and lists the required actions in `benchmark-aws/iam-ha-elb-policy.json`.
+Topology: 2 `c6i.large` gateways, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator, and an internal Application Load Balancer. 50 offered requests/s, 128 connections, per-gateway admission limit 4 (total 8). Normal and recovery phases were 10 seconds; failover was 20 seconds with gateway 1 terminated after 2 seconds.
+
+| Phase | Successes | 503 | 502 | 504 | p95 | p99 | Accepted throughput |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Normal | 232 / 500 | 268 | 0 | 0 | 349 ms | 369 ms | 22.6 /s |
+| Failover | 455 / 1,000 | 326 | 180 | 39 | 340 ms | 348 ms | 18.7 /s |
+| Recovery | 235 / 500 | 265 | 0 | 0 | 350 ms | 374 ms | 22.8 /s |
+
+- The ALB target group marked the terminated gateway unhealthy after **16.576 seconds**. During that window the ALB kept sending requests to the dead target and returned **180 × 502** and **39 × 504**. The 503s are gateway admission rejections, not ALB failures.
+- Both targets were healthy during normal and recovery. The replacement gateway was healthy before the recovery phase.
+- Normal and recovery shed about 53% because four in-flight requests per gateway (eight total) were below the 50 req/s offered load; accepted throughput was about 23 requests/s.
+- The local aiohttp proxy used one-second health checks and connection-error retry, so it had no client-visible failover errors. The ALB health-check interval is five seconds and requires two unhealthy checks, so its failover window is much longer. A production design needs deregistration/draining, client retry for 502/504, or a load balancer with faster detection.
+- The run used one subnet/AZ for all instances. The ALB spans two AZs, but this is not a multi-AZ failover test.
+- Cost was **$0.074941**; cleanup verified the ALB, listener, target group, instances, volumes, and security groups were removed. Two earlier setup attempts failed on IAM and a CLI flag; their cost is recorded in the ledger.
+
+Sanitized artifact: `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 
 ## Limits
 
@@ -233,7 +248,8 @@ A 2026-11-04 internal-ALB follow-up launched five instances and prepared them, b
 - The AWS load generator uses a 30-second client timeout; a real client may use a different timeout.
 - The admission limit of 7 was carried from the local 2-worker test and was not tuned on AWS.
 - The adaptive and retry experiment is local only; no AWS adaptive or retry run was performed.
-- The gateway HA test uses a local aiohttp proxy, not a production load balancer, and no AWS run.
+- The gateway HA test ran locally with an aiohttp proxy and on AWS with an internal ALB. Neither is a production load balancer.
+- The AWS ALB run used one run, one subnet/AZ for all targets, and no client retry for 502/504. The observed failover window was 16.6 s.
 - Adaptive policy constants (20 samples, 20% decrease, +1 increase, 110%/75% deadband) were chosen from first principles and not tuned across topologies.
 - Retry p95 includes the wait between attempts; it is not comparable to first-attempt latency.
 - Static mode uses a manually selected limit; adaptive mode is opt-in and was tested locally. A production control plane would also account for multiple gateways and per-client quotas.

@@ -1,6 +1,6 @@
 # Investigation record
 
-Status: **complete for cycles 1–11.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Cycle 10 added adaptive admission, Prometheus metrics, and a retry-aware client. Cycle 11 added a two-gateway HA proxy and failover test. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
+Status: **complete for cycles 1–12.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Cycle 10 added adaptive admission, Prometheus metrics, and a retry-aware client. Cycle 11 added a two-gateway HA proxy and failover test. Cycle 12 validated an internal AWS ALB with two gateways and measured a 16.6 s health-check failover window. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
 
 ## Context and scope
 
@@ -138,11 +138,13 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 - The proxy removes the gateway single point of failure in this local test. Admission is still local: the surviving gateway keeps its limit, so total admission capacity drops during failover. A production design needs a shared/global limiter or load-balancer-aware limits.
 - Cost $0; local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-gateway-ha.json`.
 
-## AWS ALB attempt (blocked)
+## AWS internal-ALB HA (cycle 12)
 
-- The 2026-11-04 internal-ALB attempt launched five instances and prepared the gateways and workers, then failed at `CreateTargetGroup` because the deploy user lacks `elasticloadbalancing:CreateTargetGroup` and `DescribeTargetGroups`.
-- No ALB, listener, or target group was created. All instances were terminated; volumes and groups were removed. Cost $0.026086.
-- Do not claim an AWS ALB HA result. Grant `benchmark-aws/iam-ha-elb-policy.json` or use a fallback load balancer before retrying.
+- Ran 2 `c6i.large` gateways, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator, and 1 internal ALB in `us-east-1` at 50 req/s with per-gateway admission 4 (total 8).
+- Normal: 232/500 successes, 268 controlled 503s, p95 349 ms, 22.6 req/s. Failover: 455/1,000 successes, 326 controlled 503s, 180 ALB 502s, 39 ALB 504s, p95 340 ms, 18.7 req/s. Recovery: 235/500 successes, 265 controlled 503s, p95 350 ms, 22.8 req/s.
+- The ALB marked the terminated gateway unhealthy after 16.576 s; during that window it kept sending requests to the dead target and returned 502/504. The local aiohttp proxy used 1 s checks and connection retry and had no client-visible failover errors.
+- The ALB failover works but is slower than the local proxy. A production design needs deregistration/draining, client retry for 502/504, or faster detection. All targets were in one subnet/AZ; admission is per gateway.
+- Cost: $0.074941 successful run plus $0.046329 for two setup attempts; cleanup verified. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 
 ## Portfolio and repository handoff
 

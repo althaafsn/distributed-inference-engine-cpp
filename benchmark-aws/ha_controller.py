@@ -236,8 +236,6 @@ def create_alb(state: dict, state_path: Path) -> None:
         "HttpCode=200",
         "--target-type",
         "instance",
-        "--deregistration-delay",
-        "5",
     )
     state["alb"] = {"target_group_arn": group["TargetGroups"][0]["TargetGroupArn"]}
     save_state(state_path, state)

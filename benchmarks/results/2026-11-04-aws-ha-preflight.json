@@ -32,33 +32,41 @@
     "estimate_45_min_usd": 0.4291,
     "estimate_60_min_usd": 0.5722,
     "cap_usd": 1.5,
-    "spent_usd": 3.470704,
-    "remaining_budget_usd": 6.529296
+    "spent_usd": 3.565888,
+    "remaining_budget_usd": 6.434112
   },
-  "decision": "blocked: grant the ELB target-group/load-balancer actions or use a fallback load balancer",
+  "decision": "completed: ALB failover works but takes 16.576 s and exposes 502/504 during the health-check window; local proxy remains faster",
   "elb_permissions": {
-    "status": "denied",
-    "required_actions": [
-      "elasticloadbalancing:CreateTargetGroup",
-      "elasticloadbalancing:DeleteTargetGroup",
-      "elasticloadbalancing:DescribeTargetGroups",
-      "elasticloadbalancing:CreateLoadBalancer",
-      "elasticloadbalancing:DeleteLoadBalancer",
-      "elasticloadbalancing:DescribeLoadBalancers",
-      "elasticloadbalancing:CreateListener",
-      "elasticloadbalancing:DeleteListener",
-      "elasticloadbalancing:RegisterTargets",
-      "elasticloadbalancing:DeregisterTargets",
-      "elasticloadbalancing:DescribeTargetHealth"
-    ],
-    "note": "The deploy user lacks elasticloadbalancing:DescribeTargetGroups and CreateTargetGroup."
+    "status": "ok",
+    "target_groups": []
   },
-  "failed_attempt": {
-    "run_id": "infer-c1bb16d75e82a931",
-    "reason": "AccessDenied on elasticloadbalancing:CreateTargetGroup/DescribeTargetGroups before the load phase",
-    "instances": 5,
-    "runtime_seconds": 178,
-    "estimated_cost_usd": 0.026086,
-    "cleanup": "verified: instances terminated, volumes and security groups removed, no ALB created"
+  "failed_attempts": [
+    {
+      "run_id": "infer-c1bb16d75e82a931",
+      "reason": "AccessDenied on elasticloadbalancing:CreateTargetGroup/DescribeTargetGroups before the load phase",
+      "instances": 5,
+      "runtime_seconds": 178,
+      "estimated_cost_usd": 0.026086
+    },
+    {
+      "run_id": "infer-462b612ef4939cba",
+      "reason": "AWS CLI rejected the unsupported --deregistration-delay option",
+      "instances": 5,
+      "runtime_seconds": 140,
+      "estimated_cost_usd": 0.020243
+    }
+  ],
+  "successful_run": {
+    "run_id": "infer-b24dc251e5bbc128",
+    "normal_successes": 232,
+    "failover_successes": 455,
+    "recovery_successes": 235,
+    "observed_failover_seconds": 16.576,
+    "client_visible_failover_errors": {
+      "502": 180,
+      "504": 39
+    },
+    "estimated_cost_usd": 0.074941,
+    "cleanup": "verified"
   }
 }

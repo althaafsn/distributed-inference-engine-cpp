@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "scope": "AWS internal-ALB two-gateway HA validation. Not a production or multi-AZ result.",
+  "run_id": "infer-b24dc251e5bbc128",
+  "region": "us-east-1",
+  "topology": {
+    "gateways": 2,
+    "gateway_type": "c6i.large",
+    "workers": 2,
+    "worker_type": "c6i.large",
+    "load_generator": "c6i.xlarge",
+    "alb": "internal application load balancer",
+    "alb_subnets": "two AZs",
+    "targets": "one subnet/AZ",
+    "admission_max_per_gateway": 4,
+    "total_admission_limit": 8,
+    "model": "resnet50-v2-7",
+    "data": "500-image ImageNet subset, unique, cold cache",
+    "transport": "raw float32",
+    "rate_rps": 50,
+    "normal_seconds": 10,
+    "failover_seconds": 20,
+    "recovery_seconds": 10,
+    "concurrency": 128
+  },
+  "health_check": {
+    "path": "/health",
+    "interval_seconds": 5,
+    "timeout_seconds": 3,
+    "healthy_threshold": 2,
+    "unhealthy_threshold": 2,
+    "deregistration": "default"
+  },
+  "source": {
+    "base_revision": "c4d8a08b72df810ffad0dce6a993cecae22494bb",
+    "local_head": "312900face303e18e7e83990e6a48efef71e9e89",
+    "patch_sha256": "7b8f3bac09a11b0f056465f6ffa60f0ac70404f57572683bcb76e895a3bce552"
+  },
+  "phases": {
+    "normal": {
+      "requests": 500,
+      "successes": 232,
+      "failures": 268,
+      "status_counts": {
+        "200": 232,
+        "503": 268
+      },
+      "accepted_rps": 22.621,
+      "wall_seconds": 10.256,
+      "latency_ms": {
+        "p50": 316.568,
+        "p95": 349.069,
+        "p99": 369.181
+      },
+      "targets": {
+        "gateway_1": "healthy",
+        "gateway_2": "healthy"
+      },
+      "gateways": {
+        "gateway-1": {
+          "accepted": 117,
+          "adaptive": false,
+          "configured_max": 4,
+          "in_flight": 0,
+          "limit_changes": 0,
+          "max_in_flight": 4,
+          "min_in_flight": 4,
+          "observed_p95_ms": -1,
+          "observed_samples": 0,
+          "rejected": 133,
+          "target_p95_ms": 400
+        },
+        "gateway-2": {
+          "accepted": 115,
+          "adaptive": false,
+          "configured_max": 4,
+          "in_flight": 0,
+          "limit_changes": 0,
+          "max_in_flight": 4,
+          "min_in_flight": 4,
+          "observed_p95_ms": -1,
+          "observed_samples": 0,
+          "rejected": 135,
+          "target_p95_ms": 400
+        }
+      }
+    },
+    "failover": {
+      "requests": 1000,
+      "successes": 455,
+      "failures": 545,
+      "status_counts": {
+        "200": 455,
+        "503": 326,
+        "502": 180,
+        "504": 39
+      },
+      "accepted_rps": 18.737,
+      "wall_seconds": 24.284,
+      "latency_ms": {
+        "p50": 169.847,
+        "p95": 339.919,
+        "p99": 348.403
+      },
+      "targets": {
+        "gateway_1": "unhealthy",
+        "gateway_2": "healthy"
+      },
+      "gateways": {
+        "gateway-2": {
+          "accepted": 506,
+          "adaptive": false,
+          "configured_max": 4,
+          "in_flight": 0,
+          "limit_changes": 0,
+          "max_in_flight": 4,
+          "min_in_flight": 4,
+          "observed_p95_ms": -1,
+          "observed_samples": 0,
+          "rejected": 394,
+          "target_p95_ms": 400
+        }
+      },
+      "gateway1_before_kill": {
+        "accepted": 47,
+        "rejected": 48
+      },
+      "gateway2_phase": {
+        "accepted": 391,
+        "rejected": 259
+      }
+    },
+    "recovery": {
+      "requests": 500,
+      "successes": 235,
+      "failures": 265,
+      "status_counts": {
+        "200": 235,
+        "503": 265
+      },
+      "accepted_rps": 22.839,
+      "wall_seconds": 10.289,
+      "latency_ms": {
+        "p50": 324.547,
+        "p95": 350.206,
+        "p99": 373.969
+      },
+      "targets": {
+        "gateway_1_recovery": "healthy",
+        "gateway_2": "healthy"
+      },
+      "gateways": {
+        "gateway-1": {
+          "accepted": 116,
+          "adaptive": false,
+          "configured_max": 4,
+          "in_flight": 0,
+          "limit_changes": 0,
+          "max_in_flight": 4,
+          "min_in_flight": 4,
+          "observed_p95_ms": -1,
+          "observed_samples": 0,
+          "rejected": 134,
+          "target_p95_ms": 400
+        },
+        "gateway-2": {
+          "accepted": 625,
+          "adaptive": false,
+          "configured_max": 4,
+          "in_flight": 0,
+          "limit_changes": 0,
+          "max_in_flight": 4,
+          "min_in_flight": 4,
+          "observed_p95_ms": -1,
+          "observed_samples": 0,
+          "rejected": 525,
+          "target_p95_ms": 400
+        }
+      },
+      "gateway2_phase": {
+        "accepted": 119,
+        "rejected": 131
+      }
+    }
+  },
+  "failover": {
+    "observed_failover_seconds": 16.576
+  },
+  "cost": {
+    "instance_runtime_seconds": {
+      "gateway-1": 316,
+      "gateway-2": 487,
+      "worker-1": 485,
+      "worker-2": 483,
+      "load": 481,
+      "gateway-1-recovery": 134
+    },
+    "alb_runtime_seconds": 360,
+    "estimated_usd": 0.074941
+  },
+  "cleanup": "verified: ALB, listener, target group, instances, volumes, and security groups removed",
+  "notes": [
+    "Normal and recovery 503s are gateway admission rejections; the per-gateway limit is 4 (total 8).",
+    "In failover, 326 503s are admission rejections; 180 502s and 39 504s are ALB-generated while the terminated target was still considered healthy.",
+    "The ALB target became unhealthy 16.576 s after termination; the 5 s health-check interval and 2 unhealthy checks set the detection floor.",
+    "The local aiohttp HA proxy used 1 s checks and connection-error retry, so it had no client-visible failover errors. The ALB path is slower.",
+    "The ALB spans two AZs; all instances and targets are in one subnet/AZ. This is not a multi-AZ failover test.",
+    "No public listener, TLS, authentication, or global admission limit. One run, not a production availability claim."
+  ]
+}
