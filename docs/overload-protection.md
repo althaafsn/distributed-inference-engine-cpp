@@ -199,6 +199,25 @@ Retry mode raises final goodput from 266–277 to 320–399 requests, but p95 ri
 
 Sanitized artifact: `benchmarks/results/2026-11-04-adaptive-admission.json`.
 
+## Gateway HA and failover
+
+The HA test used two gateway processes against the same two workers, with a local `aiohttp` proxy in front. The proxy polls each gateway `/health` every second, round-robins healthy gateways, and retries the other gateway once on a connection error.
+
+Topology: 2 workers, 2 gateways, 1 proxy, 50 offered requests/s, 10-second phases, 128 connections, 3 complete normal/failover/recovery runs. Per-gateway admission limit 4, so the configured total is 8. All runs used gateway SHA-256 `818630c99f457c79a879af5ddb032171a8bb1f84b853459575f13519957be688` and worker SHA-256 `603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794`.
+
+| Phase | Successes | p95 | p99 | Accepted throughput | 503s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Normal | 327 median (316–330) | 268 ms (256–277) | 284 ms | 32.2 /s | 173 (170–184) |
+| Failover | 338 median (317–342) | 234 ms (222–243) | 254 ms | 33.5 /s | 162 (158–183) |
+| Recovery | 336 median (325–338) | 262 ms (253–283) | 274 ms | 33.0 /s | 164 (162–175) |
+
+- Each failover run killed gateway 1 after 2 seconds. The proxy marked it down, completed the load through gateway 2, and recorded exactly one proxy failover. There were no proxy connection errors. After restart, gateway 1 returned to rotation.
+- A normal run with 7 per gateway (configured total 14) accepted 330/500 but p95 rose to 486 ms and p99 to 534 ms. Four per gateway is the better fit for two workers.
+- Admission is local to each gateway. During failover the survivor keeps its limit of 4, so the configured total drops from 8 to 4. In this workload the workers still allowed similar goodput, but that is a capacity tradeoff, not a global admission guarantee.
+- The proxy is a local test harness, not a production load balancer. It shares the host CPU and does not implement TLS, connection draining, or multi-host failover.
+
+Sanitized artifact: `benchmarks/results/2026-11-04-gateway-ha.json`.
+
 ## Limits
 
 - Local 16-core host and one AWS topology: 1 `c6i.large` gateway, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator.
@@ -210,6 +229,7 @@ Sanitized artifact: `benchmarks/results/2026-11-04-adaptive-admission.json`.
 - The AWS load generator uses a 30-second client timeout; a real client may use a different timeout.
 - The admission limit of 7 was carried from the local 2-worker test and was not tuned on AWS.
 - The adaptive and retry experiment is local only; no AWS adaptive or retry run was performed.
+- The gateway HA test uses a local aiohttp proxy, not a production load balancer, and no AWS run.
 - Adaptive policy constants (20 samples, 20% decrease, +1 increase, 110%/75% deadband) were chosen from first principles and not tuned across topologies.
 - Retry p95 includes the wait between attempts; it is not comparable to first-attempt latency.
 - Static mode uses a manually selected limit; adaptive mode is opt-in and was tested locally. A production control plane would also account for multiple gateways and per-client quotas.

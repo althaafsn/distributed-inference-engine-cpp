@@ -1,0 +1,507 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "scope": "Local two-gateway HA and failover comparison. Not an AWS or production result.",
+  "binaries": {
+    "gateway_sha256": "818630c99f457c79a879af5ddb032171a8bb1f84b853459575f13519957be688",
+    "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794"
+  },
+  "topology": {
+    "workers": 2,
+    "gateways": 2,
+    "ha_proxy": "local aiohttp proxy, round-robin with 1 s health checks and one connection-error retry",
+    "admission_max_per_gateway": 4,
+    "total_admission_limit": 8,
+    "model": "resnet50-v2-7",
+    "data": "500-image ImageNet subset, unique, cold cache (CACHE_CAPACITY=1)",
+    "transport": "raw float32",
+    "rate_rps": 50,
+    "duration_seconds": 10,
+    "concurrency": 128,
+    "failover_kill_after_seconds": 2
+  },
+  "records": [
+    {
+      "run": "ha-run1",
+      "normal": {
+        "requests": 500,
+        "successes": 327,
+        "failures": 173,
+        "accepted_rps": 32.185,
+        "wall_seconds": 10.16,
+        "latency_ms": {
+          "p50": 221.394,
+          "p95": 268.374,
+          "p99": 283.827
+        },
+        "proxy_requests": 500,
+        "proxy_failovers": 0,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "accepted": 164,
+            "rejected": 86,
+            "healthy": true
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 163,
+            "rejected": 87,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": "gateway-1",
+            "healthy": true,
+            "last_error": null
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      },
+      "failover": {
+        "requests": 500,
+        "successes": 338,
+        "failures": 162,
+        "accepted_rps": 33.541,
+        "wall_seconds": 10.077,
+        "latency_ms": {
+          "p50": 114.689,
+          "p95": 242.699,
+          "p99": 255.04
+        },
+        "proxy_requests": 501,
+        "proxy_failovers": 1,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "error": "not running"
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 303,
+            "rejected": 147,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": null,
+            "healthy": false,
+            "last_error": "ClientConnectorError"
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      },
+      "recovery": {
+        "requests": 500,
+        "successes": 338,
+        "failures": 162,
+        "accepted_rps": 33.218,
+        "wall_seconds": 10.175,
+        "latency_ms": {
+          "p50": 210.618,
+          "p95": 261.565,
+          "p99": 274.405
+        },
+        "proxy_requests": 500,
+        "proxy_failovers": 0,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "accepted": 169,
+            "rejected": 81,
+            "healthy": true
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 169,
+            "rejected": 81,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": "gateway-1",
+            "healthy": true,
+            "last_error": null
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      }
+    },
+    {
+      "run": "ha-run2",
+      "normal": {
+        "requests": 500,
+        "successes": 330,
+        "failures": 170,
+        "accepted_rps": 32.515,
+        "wall_seconds": 10.149,
+        "latency_ms": {
+          "p50": 225.024,
+          "p95": 256.093,
+          "p99": 264.926
+        },
+        "proxy_requests": 500,
+        "proxy_failovers": 0,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "accepted": 165,
+            "rejected": 85,
+            "healthy": true
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 165,
+            "rejected": 85,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": "gateway-1",
+            "healthy": true,
+            "last_error": null
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      },
+      "failover": {
+        "requests": 500,
+        "successes": 342,
+        "failures": 158,
+        "accepted_rps": 33.804,
+        "wall_seconds": 10.117,
+        "latency_ms": {
+          "p50": 111.959,
+          "p95": 222.297,
+          "p99": 253.629
+        },
+        "proxy_requests": 501,
+        "proxy_failovers": 1,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "error": "not running"
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 306,
+            "rejected": 144,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": null,
+            "healthy": false,
+            "last_error": "ClientConnectorError"
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      },
+      "recovery": {
+        "requests": 500,
+        "successes": 336,
+        "failures": 164,
+        "accepted_rps": 32.986,
+        "wall_seconds": 10.186,
+        "latency_ms": {
+          "p50": 217.621,
+          "p95": 253.456,
+          "p99": 266.14
+        },
+        "proxy_requests": 500,
+        "proxy_failovers": 0,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "accepted": 168,
+            "rejected": 82,
+            "healthy": true
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 168,
+            "rejected": 82,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": "gateway-1",
+            "healthy": true,
+            "last_error": null
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      }
+    },
+    {
+      "run": "ha-run3",
+      "normal": {
+        "requests": 500,
+        "successes": 316,
+        "failures": 184,
+        "accepted_rps": 31.035,
+        "wall_seconds": 10.182,
+        "latency_ms": {
+          "p50": 239.004,
+          "p95": 276.998,
+          "p99": 290.583
+        },
+        "proxy_requests": 500,
+        "proxy_failovers": 0,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "accepted": 158,
+            "rejected": 92,
+            "healthy": true
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 158,
+            "rejected": 92,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": "gateway-1",
+            "healthy": true,
+            "last_error": null
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      },
+      "failover": {
+        "requests": 500,
+        "successes": 317,
+        "failures": 183,
+        "accepted_rps": 31.403,
+        "wall_seconds": 10.095,
+        "latency_ms": {
+          "p50": 124.175,
+          "p95": 233.57,
+          "p99": 248.728
+        },
+        "proxy_requests": 501,
+        "proxy_failovers": 1,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "error": "not running"
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 281,
+            "rejected": 167,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": null,
+            "healthy": false,
+            "last_error": "ClientConnectorError"
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      },
+      "recovery": {
+        "requests": 500,
+        "successes": 325,
+        "failures": 175,
+        "accepted_rps": 31.909,
+        "wall_seconds": 10.185,
+        "latency_ms": {
+          "p50": 223.84,
+          "p95": 283.293,
+          "p99": 293.462
+        },
+        "proxy_requests": 500,
+        "proxy_failovers": 0,
+        "gateways": [
+          {
+            "gateway_id": "gateway-1",
+            "accepted": 163,
+            "rejected": 87,
+            "healthy": true
+          },
+          {
+            "gateway_id": "gateway-2",
+            "accepted": 162,
+            "rejected": 88,
+            "healthy": true
+          }
+        ],
+        "upstream_health": [
+          {
+            "gateway_id": "gateway-1",
+            "healthy": true,
+            "last_error": null
+          },
+          {
+            "gateway_id": "gateway-2",
+            "healthy": true,
+            "last_error": null
+          }
+        ]
+      }
+    }
+  ],
+  "aggregates": {
+    "normal": {
+      "runs": 3,
+      "successes": {
+        "median": 327,
+        "min": 316,
+        "max": 330
+      },
+      "failures": {
+        "median": 173,
+        "min": 170,
+        "max": 184
+      },
+      "accepted_rps": {
+        "median": 32.185,
+        "min": 31.035,
+        "max": 32.515
+      },
+      "wall_seconds": {
+        "median": 10.16,
+        "min": 10.149,
+        "max": 10.182
+      },
+      "p95_ms": {
+        "median": 268.374,
+        "min": 256.093,
+        "max": 276.998
+      },
+      "p99_ms": {
+        "median": 283.827,
+        "min": 264.926,
+        "max": 290.583
+      },
+      "proxy_failovers": 0
+    },
+    "failover": {
+      "runs": 3,
+      "successes": {
+        "median": 338,
+        "min": 317,
+        "max": 342
+      },
+      "failures": {
+        "median": 162,
+        "min": 158,
+        "max": 183
+      },
+      "accepted_rps": {
+        "median": 33.541,
+        "min": 31.403,
+        "max": 33.804
+      },
+      "wall_seconds": {
+        "median": 10.095,
+        "min": 10.077,
+        "max": 10.117
+      },
+      "p95_ms": {
+        "median": 233.57,
+        "min": 222.297,
+        "max": 242.699
+      },
+      "p99_ms": {
+        "median": 253.629,
+        "min": 248.728,
+        "max": 255.04
+      },
+      "proxy_failovers": 3
+    },
+    "recovery": {
+      "runs": 3,
+      "successes": {
+        "median": 336,
+        "min": 325,
+        "max": 338
+      },
+      "failures": {
+        "median": 164,
+        "min": 162,
+        "max": 175
+      },
+      "accepted_rps": {
+        "median": 32.986,
+        "min": 31.909,
+        "max": 33.218
+      },
+      "wall_seconds": {
+        "median": 10.185,
+        "min": 10.175,
+        "max": 10.186
+      },
+      "p95_ms": {
+        "median": 261.565,
+        "min": 253.456,
+        "max": 283.293
+      },
+      "p99_ms": {
+        "median": 274.405,
+        "min": 266.14,
+        "max": 293.462
+      },
+      "proxy_failovers": 0
+    }
+  },
+  "limit_7_normal": {
+    "successes": 330,
+    "failures": 170,
+    "accepted_rps": 31.83,
+    "p95_ms": 485.928,
+    "p99_ms": 534.473
+  },
+  "notes": [
+    "The HA proxy is a local test harness, not a production load balancer.",
+    "Admission is per gateway. Limit 4 per gateway gives a total of 8; limit 7 per gateway gives a total of 14.",
+    "During failover the surviving gateway keeps its local limit, so total admission capacity drops.",
+    "The proxy retries only on connection errors, not on 503 responses.",
+    "All three runs had one proxy-level failover and no proxy connection errors.",
+    "No AWS resources were used; cost is $0."
+  ]
+}

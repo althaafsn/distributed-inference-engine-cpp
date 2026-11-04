@@ -199,6 +199,22 @@ This is the resumable record for [CONTINUOUS-OPTIMIZATION.md](CONTINUOUS-OPTIMIZ
 | Cost | Local only; $0. |
 | Limits | One local topology; one policy parameter set; adaptive p95 includes the convergence ramp; retry p95 includes backoff wait; no AWS adaptive or retry run; no external Prometheus/Grafana or production claim. |
 
+## Cycle 11 — gateway HA and failover (accepted for the local test harness)
+
+| Field | Record |
+| --- | --- |
+| Hypothesis | Two gateways behind a health-checked proxy remove the single-gateway failure point. Per-gateway admission limits sum, so the total limit must be chosen for the worker capacity. |
+| Baseline | Cycle-10 source at `0993909`; one gateway process. |
+| Change | Add gateway `/health` and `GATEWAY_ID`; add `benchmark-aws/ha_proxy.py` with round-robin, 1 s health checks, and one connection-error retry; add `benchmark-aws/run_ha.py` for normal/failover/recovery phases; add proxy and health tests. |
+| Workload | Local AMD Ryzen 7 5800H; 2 workers, 2 gateways, 1 aiohttp proxy; ResNet50-v2-7; 500 unique images; cache 1; binary transport; 50 requests/s; 10 s per phase; 128 connections; 3 complete runs. Per-gateway admission 4 (total 8); a separate normal run used 7 per gateway (total 14). Failover killed gateway 1 after 2 s; recovery restarted it. |
+| Verification | 98 tests with real binaries and `aiohttp`; 22 skips with real binaries but no `aiohttp`; 39 skips without both; CTest 5/5; proxy tests cover round-robin, health removal, connection-error failover, recovery, and both-down 503; health test covers `/health` and gateway ID. |
+| Results | Normal: 327/500 median successes (316–330), p95 268 ms (256–277), 32.2 req/s. Failover: 338/500 (317–342), p95 234 ms (222–243), 33.5 req/s; one proxy failover per run, no proxy connection errors. Recovery: 336/500 (325–338), p95 262 ms (253–283), 33.0 req/s. |
+| Limit 7 per gateway | 330/500 successes, p95 486 ms, p99 534 ms. Worse p95 than 4 per gateway (total 8), because the total in-flight limit is 14 and the two workers saturate. |
+| Decision | Accepted for the local HA test harness. The proxy removes the gateway single point of failure and returns the restarted gateway to rotation. Admission remains per gateway: the survivor keeps its local limit, so total capacity drops during failover. A production design needs a shared/global limiter or a load-balancer-aware limit. |
+| Artifacts | `benchmarks/results/2026-11-04-gateway-ha.json`, `docs/overload-protection.md`, `benchmark-aws/ha_proxy.py`, `benchmark-aws/run_ha.py`, `tests/test_ha_proxy.py`, `tests/test_gateway_health.py`. |
+| Cost | Local only; $0. |
+| Limits | Custom aiohttp proxy, not a production load balancer; one host; 3 runs; 1 s health interval; no TLS, connection draining, multi-host, or AWS run; no global admission guarantee. |
+
 ## Stop condition and future work
 
 Cycle 6 closed the multi-host capacity item for the tested workload; cycle 9 validated admission control on a separate multi-host topology. The remaining constraints are production concerns, not single-variable performance candidates: TLS and authentication, rate limiting and backpressure, graceful shutdown, Prometheus scraping and dashboards, model versioning, multi-AZ replacement, and a long-duration soak.

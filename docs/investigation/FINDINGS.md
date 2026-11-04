@@ -1,6 +1,6 @@
 # Investigation record
 
-Status: **complete for cycles 1–10.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Cycle 10 added adaptive admission, Prometheus metrics, and a retry-aware client. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
+Status: **complete for cycles 1–11.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Cycle 10 added adaptive admission, Prometheus metrics, and a retry-aware client. Cycle 11 added a two-gateway HA proxy and failover test. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
 
 ## Context and scope
 
@@ -129,6 +129,14 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 - At 100 req/s: static 7 accepted 277/1,000 with p95 400.9 ms; adaptive accepted 266/1,000 with p95 556.6 ms and final limit 7; final observed p95 was 398 ms.
 - Retry at 100 req/s raised final successes from 266–277 to 320–399, but p95 rose to about 3.3 s because it includes the wait between attempts.
 - Adaptive works mechanically and converges near the target, but it did not beat the calibrated static 7 in these 10-second runs. Static 7 remains the default; the metrics surface and retry client are the durable deliverables. Cost $0, local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-adaptive-admission.json`.
+
+## Gateway HA and failover (cycle 11)
+
+- Added a gateway `/health` endpoint, a local aiohttp proxy with health checks and connection-error failover, and a two-gateway orchestration script.
+- Three normal/failover/recovery runs at 50 req/s: normal 327/500 median successes (316–330), p95 268 ms (256–277); failover 338/500 (317–342), p95 234 ms (222–243), one proxy failover per run and no proxy connection errors; recovery 336/500 (325–338), p95 262 ms (253–283).
+- Four per gateway (total 8) gave p95 268 ms; seven per gateway (total 14) gave p95 486 ms. Per-gateway admission limits sum, so the total must fit the two workers.
+- The proxy removes the gateway single point of failure in this local test. Admission is still local: the surviving gateway keeps its limit, so total admission capacity drops during failover. A production design needs a shared/global limiter or load-balancer-aware limits.
+- Cost $0; local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-gateway-ha.json`.
 
 ## Portfolio and repository handoff
 
