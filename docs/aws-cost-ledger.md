@@ -75,7 +75,48 @@ One `c6i.large` gateway, two `c6i.large` workers, and one `c6i.xlarge` load gene
 | Load generator | c6i.xlarge | 1057 | $0.049914 | $0.001468 | $0.000391 | $0.051773 |
 | **Total** | | **4,242** | **$0.125115** | **$0.005892** | **$0.001571** | **$0.132578** |
 
-Grand total: **$0.044703 + $3.267337 + $0.132578 = $3.444618**. The remaining budget is about **$6.56**.
+## Failed ALB HA attempt (2026-11-04)
+
+Five instances ran for 170–178 seconds. The run failed at `CreateTargetGroup` because the deploy user lacks ELB target-group permissions. No ALB or target group was created. All instances were terminated; volumes and security groups were removed.
+
+| Resource | Type | Seconds | Compute | IPv4 | 12 GB gp3 | Estimated subtotal |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Gateway 1 | c6i.large | 178 | $0.004203 | $0.000247 | $0.000066 | $0.004516 |
+| Gateway 2 | c6i.large | 176 | $0.004156 | $0.000244 | $0.000065 | $0.004465 |
+| Worker 1 | c6i.large | 174 | $0.004108 | $0.000242 | $0.000064 | $0.004414 |
+| Worker 2 | c6i.large | 172 | $0.004061 | $0.000239 | $0.000064 | $0.004364 |
+| Load generator | c6i.xlarge | 170 | $0.008028 | $0.000236 | $0.000063 | $0.008327 |
+| **Total** | | **870** | **$0.024556** | **$0.001208** | **$0.000322** | **$0.026086** |
+
+## Second failed ALB attempt (2026-11-04)
+
+This retry failed before creating the target group because the CLI rejected the unsupported `--deregistration-delay` option. All instances were terminated and all volumes and groups were removed. No ALB or target group was created.
+
+| Resource | Type | Seconds | Compute | IPv4 | 12 GB gp3 | Estimated subtotal |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Gateway 1 | c6i.large | 140 | $0.003306 | $0.000194 | $0.000052 | $0.003552 |
+| Gateway 2 | c6i.large | 137 | $0.003235 | $0.000190 | $0.000051 | $0.003476 |
+| Worker 1 | c6i.large | 135 | $0.003188 | $0.000188 | $0.000050 | $0.003426 |
+| Worker 2 | c6i.large | 133 | $0.003140 | $0.000185 | $0.000049 | $0.003374 |
+| Load generator | c6i.xlarge | 131 | $0.006186 | $0.000182 | $0.000049 | $0.006417 |
+| **Total** | | **676** | **$0.019054** | **$0.000939** | **$0.000250** | **$0.020243** |
+
+## Successful ALB HA run (2026-11-04)
+
+One internal ALB, two gateways, two workers, one load generator, and one replacement gateway. Runtime is from EC2 `LaunchTime` to termination; the ALB runtime is the interval from prepare completion to cleanup (approximately 360 seconds).
+
+| Resource | Type | Seconds | Compute | IPv4 | 12 GB gp3 | Estimated subtotal |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Gateway 1 | c6i.large | 316 | $0.007461 | $0.000439 | $0.000117 | $0.008017 |
+| Gateway 2 | c6i.large | 487 | $0.011499 | $0.000676 | $0.000180 | $0.012355 |
+| Worker 1 | c6i.large | 485 | $0.011451 | $0.000674 | $0.000180 | $0.012305 |
+| Worker 2 | c6i.large | 483 | $0.011404 | $0.000671 | $0.000179 | $0.012254 |
+| Load generator | c6i.xlarge | 481 | $0.022714 | $0.000668 | $0.000178 | $0.023560 |
+| Replacement gateway | c6i.large | 134 | $0.003164 | $0.000186 | $0.000050 | $0.003400 |
+| ALB | internal | 360 | $0.003050 | $0.000000 | $0.000000 | $0.003050 |
+| **Total** | | **2,746** | **$0.070743** | **$0.003314** | **$0.000884** | **$0.074941** |
+
+Grand total: **$0.044703 + $3.267337 + $0.132578 + $0.026086 + $0.020243 + $0.074941 = $3.565888**. The remaining budget is about **$6.43**.
 
 For the multi-host table, `exact` means the interval from EC2 `LaunchTime` to the recorded termination time. `log` means the console-log end time minus the recorded run start time, because AWS had already aged the instance records out of `describe-instances`. The `log` method includes provisioning and cleanup, so it is conservative. The two failover timeout rows include the full wait time before cleanup.
 

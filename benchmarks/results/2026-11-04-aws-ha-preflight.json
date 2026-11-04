@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "scope": "AWS internal-ALB HA preflight and run record. The preflight ran before launch; failed and successful attempts are recorded below.",
+  "region": "us-east-1",
+  "subnets": [
+    {
+      "availability_zone": "us-east-1a",
+      "public": true,
+      "available_ip_addresses": 4091
+    },
+    {
+      "availability_zone": "us-east-1b",
+      "public": true,
+      "available_ip_addresses": 4091
+    }
+  ],
+  "active_tagged_instances": 0,
+  "active_tagged_volumes": 0,
+  "load_balancers": 0,
+  "cost": {
+    "instances": {
+      "c6i.large": 4,
+      "c6i.xlarge": 1
+    },
+    "load_balancer": "internal application, 1 listener, 1 target group",
+    "compute_hourly_usd": 0.51,
+    "alb_hourly_usd": 0.0305,
+    "ipv4_hourly_usd": 0.025,
+    "gp3_hourly_usd": 0.0067,
+    "hourly_usd": 0.5722,
+    "estimate_45_min_usd": 0.4291,
+    "estimate_60_min_usd": 0.5722,
+    "cap_usd": 1.5,
+    "spent_usd": 3.565888,
+    "remaining_budget_usd": 6.434112
+  },
+  "decision": "completed: the ALB target health state changed after 16.576 s and client-visible 502/504 errors continued to about 24.3 s; the local proxy remains faster",
+  "elb_permissions": {
+    "status": "ok",
+    "target_groups": []
+  },
+  "failed_attempts": [
+    {
+      "run_id": "infer-c1bb16d75e82a931",
+      "reason": "AccessDenied on elasticloadbalancing:CreateTargetGroup/DescribeTargetGroups before the load phase",
+      "instances": 5,
+      "runtime_seconds": 178,
+      "estimated_cost_usd": 0.026086
+    },
+    {
+      "run_id": "infer-462b612ef4939cba",
+      "reason": "AWS CLI rejected the unsupported --deregistration-delay option",
+      "instances": 5,
+      "runtime_seconds": 140,
+      "estimated_cost_usd": 0.020243
+    }
+  ],
+  "successful_run": {
+    "run_id": "infer-b24dc251e5bbc128",
+    "normal_successes": 232,
+    "failover_successes": 455,
+    "recovery_successes": 235,
+    "observed_failover_seconds": 16.576,
+    "client_visible_failover_errors": {
+      "502": 180,
+      "504": 39
+    },
+    "estimated_cost_usd": 0.074941,
+    "cleanup": "verified",
+    "failover_note": "16.576 s is the TargetHealth observation. Request IDs show dead-target 502/504 requests starting from about 5.3 s to about 14.3 s after the load marker; the last 504 completed about 24.3 s because it waited the 10 s client timeout.",
+    "dead_target_request_starts_seconds_approx": "5.3 to 14.3",
+    "client_visible_error_completion_seconds_approx": "5.3 to 24.3"
+  }
+}

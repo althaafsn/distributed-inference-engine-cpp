@@ -1,6 +1,6 @@
 # Investigation record
 
-Status: **complete for cycles 1–11.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Cycle 10 added adaptive admission, Prometheus metrics, and a retry-aware client. Cycle 11 added a two-gateway HA proxy and failover test. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
+Status: **complete for cycles 1–12.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Cycle 10 added adaptive admission, Prometheus metrics, and a retry-aware client. Cycle 11 added a two-gateway HA proxy and failover test. Cycle 12 validated an internal AWS ALB with two gateways; the target health state changed after 16.6 s and client-visible 502/504 errors continued to about 24.3 s. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
 
 ## Context and scope
 
@@ -137,6 +137,14 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 - Four per gateway (total 8) gave p95 257 ms; seven per gateway (total 14) gave p95 500 ms. Per-gateway admission limits sum, so the total must fit the two workers.
 - The proxy removes the gateway single point of failure in this local test. Admission is still local: the surviving gateway keeps its limit, so total admission capacity drops during failover. A production design needs a shared/global limiter or load-balancer-aware limits.
 - Cost $0; local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-gateway-ha.json`.
+
+## AWS internal-ALB HA (cycle 12)
+
+- Ran 2 `c6i.large` gateways, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator, and 1 internal ALB in `us-east-1` at 50 req/s with per-gateway admission 4 (total 8).
+- Normal: 232/500 successes, 268 controlled 503s, p95 349 ms, 22.6 req/s. Failover: 455/1,000 successes, 326 controlled 503s, 180 ALB 502s, 39 ALB 504s, p95 340 ms, 18.7 req/s. Recovery: 235/500 successes, 265 controlled 503s, p95 350 ms, 22.8 req/s.
+- The ALB TargetHealth API first reported the terminated gateway unhealthy 16.576 s after the termination request. Request IDs show dead-target 502/504 requests from about 5.3 s to about 14.3 s after the load marker; the last 504 completed about 24.3 s because it waited the 10 s client timeout. The 16.576 s value is a health-state observation, not the client-visible error window. The local aiohttp proxy used 1 s checks and connection retry and had no client-visible failover errors.
+- The ALB failover works but is slower than the local proxy. Deregistration stayed at the default 300 s; the test relied on health checks. A production design needs deregistration/draining, client retry for 502/504, or faster detection. All targets were in one subnet/AZ; admission is per gateway.
+- Cost: $0.074941 successful run plus $0.046329 for two setup attempts; cleanup verified. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 
 ## Portfolio and repository handoff
 
