@@ -5,10 +5,12 @@ RESULT=$WORK/results
 mkdir -p "$RESULT"
 export PATH=/usr/local/bin:/usr/bin:/bin
 
-sudo dnf install -y python3.12 python3.12-pip >/dev/null
-python3.12 -m venv "$WORK/venv"
-"$WORK/venv/bin/pip" install --quiet --upgrade pip
-"$WORK/venv/bin/pip" install --quiet -r "$HOME/requirements-benchmark.txt"
+if [[ ! -x "$WORK/venv/bin/python" ]]; then
+    sudo dnf install -y python3.12 python3.12-pip >/dev/null
+    python3.12 -m venv "$WORK/venv"
+    "$WORK/venv/bin/pip" install --quiet --upgrade pip
+    "$WORK/venv/bin/pip" install --quiet -r "$HOME/requirements-benchmark.txt"
+fi
 
 if [[ ! -f "$WORK/data/manifest.json" ]]; then
     "$WORK/venv/bin/python" "$HOME/prepare_data.py" \

@@ -228,6 +228,28 @@ def require_fresh_health(health: dict, role: str) -> None:
         )
 
 
+def gateway_env(routing: str, admission_max: int) -> str:
+    return f"GATEWAY_PORT=8000 ROUTING_POLICY={routing} ADMISSION_MAX_INFLIGHT={admission_max} "
+
+
+def hold_sequence(
+    rates: list[float], admission_max: int, repeats: int, matrix: bool
+) -> list[tuple[float, int, int]]:
+    conditions = []
+    for rate in rates:
+        if matrix:
+            for repeat in range(repeats):
+                order = [0, admission_max] if repeat % 2 == 0 else [admission_max, 0]
+                conditions.extend((rate, admission, repeat) for admission in order)
+        else:
+            conditions.append((rate, admission_max, 0))
+    return conditions
+
+
+def hold_label(rate: float, admission_max: int, repeat: int) -> str:
+    return f"hold-rate{rate:g}-a{admission_max}-r{repeat + 1}"
+
+
 def cleanup_state(state: dict) -> bool:
     if state.get("region") != REGION or identity() != state.get("account"):
         raise RuntimeError("account or region differs from the recorded run; refusing cleanup")
@@ -456,7 +478,7 @@ def run(args: argparse.Namespace) -> int:
                 time.sleep(1)
             raise RuntimeError(f"remote file did not appear: {remote_path}")
 
-        def start_services():
+        def start_services(admission_max: int):
             for number, role in enumerate(worker_roles, start=1):
                 item = state["instances"][role]
                 remote = (
@@ -478,7 +500,7 @@ def run(args: argparse.Namespace) -> int:
             ssh_run(
                 gateway["host"],
                 gateway["ssh_options"],
-                f"GATEWAY_PORT=8000 ROUTING_POLICY={args.routing} "
+                f"{gateway_env(args.routing, admission_max)}"
                 f"bash ~/remote_gateway.sh {workers} "
                 "> ~/benchmark-work/results/gateway-start.log 2>&1 < /dev/null & echo started",
                 timeout=30,
@@ -495,9 +517,9 @@ def run(args: argparse.Namespace) -> int:
                     timeout=60,
                 )
 
-        def restart_services():
+        def restart_services(admission_max: int):
             stop_services()
-            start_services()
+            start_services(admission_max)
 
         def collect_metrics(target: Path) -> None:
             target.mkdir(parents=True, exist_ok=True)
@@ -608,7 +630,7 @@ def run(args: argparse.Namespace) -> int:
             return " ".join(parts)
 
         if not args.skip_accuracy:
-            restart_services()
+            restart_services(args.admission_max)
             result = ssh_run(
                 load["host"],
                 load["ssh_options"],
@@ -628,7 +650,7 @@ def run(args: argparse.Namespace) -> int:
 
         if not args.skip_levels:
             for level in args.levels:
-                restart_services()
+                restart_services(args.admission_max)
                 result = ssh_run(
                     load["host"],
                     load["ssh_options"],
@@ -647,28 +669,39 @@ def run(args: argparse.Namespace) -> int:
                 fetch_results(load, directory / f"level-{level}")
                 collect_metrics(directory / f"level-{level}" / "metrics")
 
-        if args.hold_rate is not None:
-            restart_services()
-            result = ssh_run(
-                load["host"],
-                load["ssh_options"],
-                (
-                    f"PHASE=load {load_env(rate=args.hold_rate, duration=args.hold_seconds, label='hold')} "
-                    "bash ~/remote_load.sh"
-                ),
-                timeout=int(args.hold_seconds) + 900,
-                check=False,
+        hold_rates = args.hold_rates or ([args.hold_rate] if args.hold_rate is not None else [])
+        if hold_rates:
+            multi = args.hold_matrix or bool(args.hold_rates)
+            conditions = hold_sequence(
+                hold_rates, args.admission_max, args.hold_repeats, args.hold_matrix
             )
-            (directory / "load-hold.log").write_text(
-                result.stdout + result.stderr, encoding="utf-8"
-            )
-            if result.returncode:
-                raise RuntimeError(f"hold phase failed with {result.returncode}; see load-hold.log")
-            fetch_results(load, directory / "hold")
-            collect_metrics(directory / "hold" / "metrics")
+            for rate, admission, repeat in conditions:
+                label = hold_label(rate, admission, repeat) if multi else "hold"
+                restart_services(admission)
+                result = ssh_run(
+                    load["host"],
+                    load["ssh_options"],
+                    (
+                        f"PHASE=load {load_env(rate=rate, duration=args.hold_seconds, label=label)} "
+                        "bash ~/remote_load.sh"
+                    ),
+                    timeout=int(args.hold_seconds) + 900,
+                    check=False,
+                )
+                log_name = f"load-{label}.log"
+                (directory / log_name).write_text(result.stdout + result.stderr, encoding="utf-8")
+                if result.returncode:
+                    raise RuntimeError(
+                        f"hold {label} failed with {result.returncode}; see {log_name}"
+                    )
+                collect_metrics(directory / label / "metrics")
+            if multi:
+                fetch_results(load, directory / "holds")
+            else:
+                fetch_results(load, directory / "hold")
 
         if args.failover_rate is not None:
-            restart_services()
+            restart_services(args.admission_max)
             background = (
                 f"PHASE=load {load_env(rate=args.failover_rate, duration=args.failover_seconds, label='failover', mode='repeated', collect_output=True)} "
                 "nohup bash ~/remote_load.sh > ~/failover.log "
@@ -770,6 +803,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--skip-accuracy", action="store_true")
     parser.add_argument("--skip-levels", action="store_true")
     parser.add_argument("--hold-rate", type=float)
+    parser.add_argument("--hold-rates", type=float, nargs="+")
+    parser.add_argument("--hold-repeats", type=int, default=1)
+    parser.add_argument("--hold-matrix", action="store_true")
+    parser.add_argument("--admission-max", type=int, default=0)
     parser.add_argument("--hold-seconds", type=float, default=300.0)
     parser.add_argument("--hold-concurrency", type=int, default=128)
     parser.add_argument("--failover-rate", type=float)
@@ -780,6 +817,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.workers < 1 or args.workers > MAX_WORKERS:
         parser.error(f"--workers must be between 1 and {MAX_WORKERS}")
+    if args.admission_max < 0:
+        parser.error("--admission-max must be non-negative")
+    if args.hold_repeats < 1:
+        parser.error("--hold-repeats must be at least 1")
+    if args.hold_rates and args.hold_rate is not None:
+        parser.error("use --hold-rates or --hold-rate, not both")
+    if args.hold_matrix and args.admission_max <= 0:
+        parser.error("--hold-matrix requires --admission-max > 0")
     if args.dry_run:
         hourly = (args.workers + 1) * 0.085 + 0.17
         print(
