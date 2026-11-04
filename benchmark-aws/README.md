@@ -77,7 +77,7 @@ python3 benchmark-aws/run_ha.py \
   --rate 50 --duration 10 --admission-max 4 --force
 ```
 
-The script runs normal, failover, and recovery phases. Failover terminates gateway 1 after 2 seconds; recovery restarts it. The proxy and its health checks are a local test harness, not a production load balancer.
+The script runs normal, failover, and recovery phases. Failover terminates gateway 1 after 2 seconds; recovery restarts it. The proxy and its health checks are a local test harness, not a production load balancer. `summarize_ha.py` regenerates the sanitized artifact from the raw run directories.
 
 See the [full image benchmark report](../docs/autotune-benchmark.md) and the [sanitized summary](../benchmarks/results/2026-11-02-autotune-summary.json). Estimated campaign cost was $3.31 of the $10 ceiling. Treat these as benchmark results, not production readiness.
 

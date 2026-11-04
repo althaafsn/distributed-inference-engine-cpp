@@ -22,31 +22,32 @@
   },
   "records": [
     {
-      "run": "ha-run1",
+      "run": "ha2-run1",
+      "observed_failover_seconds": 0.257,
       "normal": {
         "requests": 500,
-        "successes": 327,
-        "failures": 173,
-        "accepted_rps": 32.185,
-        "wall_seconds": 10.16,
+        "successes": 352,
+        "failures": 148,
+        "accepted_rps": 34.636,
+        "wall_seconds": 10.163,
         "latency_ms": {
-          "p50": 221.394,
-          "p95": 268.374,
-          "p99": 283.827
+          "p50": 204.263,
+          "p95": 243.035,
+          "p99": 266.8
         },
         "proxy_requests": 500,
         "proxy_failovers": 0,
         "gateways": [
           {
             "gateway_id": "gateway-1",
-            "accepted": 164,
-            "rejected": 86,
+            "accepted": 176,
+            "rejected": 74,
             "healthy": true
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 163,
-            "rejected": 87,
+            "accepted": 176,
+            "rejected": 74,
             "healthy": true
           }
         ],
@@ -65,14 +66,14 @@
       },
       "failover": {
         "requests": 500,
-        "successes": 338,
-        "failures": 162,
-        "accepted_rps": 33.541,
-        "wall_seconds": 10.077,
+        "successes": 322,
+        "failures": 178,
+        "accepted_rps": 31.902,
+        "wall_seconds": 10.093,
         "latency_ms": {
-          "p50": 114.689,
-          "p95": 242.699,
-          "p99": 255.04
+          "p50": 116.935,
+          "p95": 250.143,
+          "p99": 273.589
         },
         "proxy_requests": 501,
         "proxy_failovers": 1,
@@ -83,8 +84,8 @@
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 303,
-            "rejected": 147,
+            "accepted": 290,
+            "rejected": 161,
             "healthy": true
           }
         ],
@@ -99,32 +100,36 @@
             "healthy": true,
             "last_error": null
           }
-        ]
+        ],
+        "gateway1_before_kill": {
+          "accepted": 32,
+          "rejected": 17
+        }
       },
       "recovery": {
         "requests": 500,
-        "successes": 338,
-        "failures": 162,
-        "accepted_rps": 33.218,
-        "wall_seconds": 10.175,
+        "successes": 358,
+        "failures": 142,
+        "accepted_rps": 35.199,
+        "wall_seconds": 10.171,
         "latency_ms": {
-          "p50": 210.618,
-          "p95": 261.565,
-          "p99": 274.405
+          "p50": 204.665,
+          "p95": 240.908,
+          "p99": 266.102
         },
         "proxy_requests": 500,
         "proxy_failovers": 0,
         "gateways": [
           {
             "gateway_id": "gateway-1",
-            "accepted": 169,
-            "rejected": 81,
+            "accepted": 180,
+            "rejected": 70,
             "healthy": true
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 169,
-            "rejected": 81,
+            "accepted": 178,
+            "rejected": 72,
             "healthy": true
           }
         ],
@@ -143,31 +148,32 @@
       }
     },
     {
-      "run": "ha-run2",
+      "run": "ha2-run2",
+      "observed_failover_seconds": 0.207,
       "normal": {
         "requests": 500,
-        "successes": 330,
-        "failures": 170,
-        "accepted_rps": 32.515,
-        "wall_seconds": 10.149,
+        "successes": 343,
+        "failures": 157,
+        "accepted_rps": 33.843,
+        "wall_seconds": 10.135,
         "latency_ms": {
-          "p50": 225.024,
-          "p95": 256.093,
-          "p99": 264.926
+          "p50": 213.692,
+          "p95": 257.241,
+          "p99": 270.563
         },
         "proxy_requests": 500,
         "proxy_failovers": 0,
         "gateways": [
           {
             "gateway_id": "gateway-1",
-            "accepted": 165,
-            "rejected": 85,
+            "accepted": 171,
+            "rejected": 79,
             "healthy": true
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 165,
-            "rejected": 85,
+            "accepted": 172,
+            "rejected": 78,
             "healthy": true
           }
         ],
@@ -186,14 +192,14 @@
       },
       "failover": {
         "requests": 500,
-        "successes": 342,
-        "failures": 158,
-        "accepted_rps": 33.804,
-        "wall_seconds": 10.117,
+        "successes": 343,
+        "failures": 157,
+        "accepted_rps": 34.09,
+        "wall_seconds": 10.062,
         "latency_ms": {
-          "p50": 111.959,
-          "p95": 222.297,
-          "p99": 253.629
+          "p50": 111.195,
+          "p95": 223.541,
+          "p99": 240.578
         },
         "proxy_requests": 501,
         "proxy_failovers": 1,
@@ -204,7 +210,7 @@
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 306,
+            "accepted": 307,
             "rejected": 144,
             "healthy": true
           }
@@ -220,32 +226,36 @@
             "healthy": true,
             "last_error": null
           }
-        ]
+        ],
+        "gateway1_before_kill": {
+          "accepted": 36,
+          "rejected": 13
+        }
       },
       "recovery": {
         "requests": 500,
-        "successes": 336,
-        "failures": 164,
-        "accepted_rps": 32.986,
-        "wall_seconds": 10.186,
+        "successes": 318,
+        "failures": 182,
+        "accepted_rps": 31.34,
+        "wall_seconds": 10.147,
         "latency_ms": {
-          "p50": 217.621,
-          "p95": 253.456,
-          "p99": 266.14
+          "p50": 226.71,
+          "p95": 280.189,
+          "p99": 307.683
         },
         "proxy_requests": 500,
         "proxy_failovers": 0,
         "gateways": [
           {
             "gateway_id": "gateway-1",
-            "accepted": 168,
-            "rejected": 82,
+            "accepted": 159,
+            "rejected": 91,
             "healthy": true
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 168,
-            "rejected": 82,
+            "accepted": 159,
+            "rejected": 91,
             "healthy": true
           }
         ],
@@ -264,31 +274,32 @@
       }
     },
     {
-      "run": "ha-run3",
+      "run": "ha2-run3",
+      "observed_failover_seconds": 0.205,
       "normal": {
         "requests": 500,
-        "successes": 316,
-        "failures": 184,
-        "accepted_rps": 31.035,
-        "wall_seconds": 10.182,
+        "successes": 329,
+        "failures": 171,
+        "accepted_rps": 32.47,
+        "wall_seconds": 10.132,
         "latency_ms": {
-          "p50": 239.004,
-          "p95": 276.998,
-          "p99": 290.583
+          "p50": 224.194,
+          "p95": 258.479,
+          "p99": 273.061
         },
         "proxy_requests": 500,
         "proxy_failovers": 0,
         "gateways": [
           {
             "gateway_id": "gateway-1",
-            "accepted": 158,
-            "rejected": 92,
+            "accepted": 164,
+            "rejected": 86,
             "healthy": true
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 158,
-            "rejected": 92,
+            "accepted": 165,
+            "rejected": 85,
             "healthy": true
           }
         ],
@@ -307,14 +318,14 @@
       },
       "failover": {
         "requests": 500,
-        "successes": 317,
-        "failures": 183,
-        "accepted_rps": 31.403,
-        "wall_seconds": 10.095,
+        "successes": 320,
+        "failures": 180,
+        "accepted_rps": 31.757,
+        "wall_seconds": 10.076,
         "latency_ms": {
-          "p50": 124.175,
-          "p95": 233.57,
-          "p99": 248.728
+          "p50": 125.899,
+          "p95": 212.691,
+          "p99": 229.004
         },
         "proxy_requests": 501,
         "proxy_failovers": 1,
@@ -325,7 +336,7 @@
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 281,
+            "accepted": 283,
             "rejected": 167,
             "healthy": true
           }
@@ -341,32 +352,36 @@
             "healthy": true,
             "last_error": null
           }
-        ]
+        ],
+        "gateway1_before_kill": {
+          "accepted": 37,
+          "rejected": 12
+        }
       },
       "recovery": {
         "requests": 500,
-        "successes": 325,
-        "failures": 175,
-        "accepted_rps": 31.909,
-        "wall_seconds": 10.185,
+        "successes": 357,
+        "failures": 143,
+        "accepted_rps": 35.216,
+        "wall_seconds": 10.137,
         "latency_ms": {
-          "p50": 223.84,
-          "p95": 283.293,
-          "p99": 293.462
+          "p50": 207.491,
+          "p95": 229.956,
+          "p99": 232.007
         },
         "proxy_requests": 500,
         "proxy_failovers": 0,
         "gateways": [
           {
             "gateway_id": "gateway-1",
-            "accepted": 163,
-            "rejected": 87,
+            "accepted": 178,
+            "rejected": 72,
             "healthy": true
           },
           {
             "gateway_id": "gateway-2",
-            "accepted": 162,
-            "rejected": 88,
+            "accepted": 179,
+            "rejected": 71,
             "healthy": true
           }
         ],
@@ -389,102 +404,102 @@
     "normal": {
       "runs": 3,
       "successes": {
-        "median": 327,
-        "min": 316,
-        "max": 330
+        "median": 343,
+        "min": 329,
+        "max": 352
       },
       "failures": {
-        "median": 173,
-        "min": 170,
-        "max": 184
+        "median": 157,
+        "min": 148,
+        "max": 171
       },
       "accepted_rps": {
-        "median": 32.185,
-        "min": 31.035,
-        "max": 32.515
+        "median": 33.843,
+        "min": 32.47,
+        "max": 34.636
       },
       "wall_seconds": {
-        "median": 10.16,
-        "min": 10.149,
-        "max": 10.182
+        "median": 10.135,
+        "min": 10.132,
+        "max": 10.163
       },
       "p95_ms": {
-        "median": 268.374,
-        "min": 256.093,
-        "max": 276.998
+        "median": 257.241,
+        "min": 243.035,
+        "max": 258.479
       },
       "p99_ms": {
-        "median": 283.827,
-        "min": 264.926,
-        "max": 290.583
+        "median": 270.563,
+        "min": 266.8,
+        "max": 273.061
       },
       "proxy_failovers": 0
     },
     "failover": {
       "runs": 3,
       "successes": {
-        "median": 338,
-        "min": 317,
-        "max": 342
+        "median": 322,
+        "min": 320,
+        "max": 343
       },
       "failures": {
-        "median": 162,
-        "min": 158,
-        "max": 183
+        "median": 178,
+        "min": 157,
+        "max": 180
       },
       "accepted_rps": {
-        "median": 33.541,
-        "min": 31.403,
-        "max": 33.804
+        "median": 31.902,
+        "min": 31.757,
+        "max": 34.09
       },
       "wall_seconds": {
-        "median": 10.095,
-        "min": 10.077,
-        "max": 10.117
+        "median": 10.076,
+        "min": 10.062,
+        "max": 10.093
       },
       "p95_ms": {
-        "median": 233.57,
-        "min": 222.297,
-        "max": 242.699
+        "median": 223.541,
+        "min": 212.691,
+        "max": 250.143
       },
       "p99_ms": {
-        "median": 253.629,
-        "min": 248.728,
-        "max": 255.04
+        "median": 240.578,
+        "min": 229.004,
+        "max": 273.589
       },
       "proxy_failovers": 3
     },
     "recovery": {
       "runs": 3,
       "successes": {
-        "median": 336,
-        "min": 325,
-        "max": 338
+        "median": 357,
+        "min": 318,
+        "max": 358
       },
       "failures": {
-        "median": 164,
-        "min": 162,
-        "max": 175
+        "median": 143,
+        "min": 142,
+        "max": 182
       },
       "accepted_rps": {
-        "median": 32.986,
-        "min": 31.909,
-        "max": 33.218
+        "median": 35.199,
+        "min": 31.34,
+        "max": 35.216
       },
       "wall_seconds": {
-        "median": 10.185,
-        "min": 10.175,
-        "max": 10.186
+        "median": 10.147,
+        "min": 10.137,
+        "max": 10.171
       },
       "p95_ms": {
-        "median": 261.565,
-        "min": 253.456,
-        "max": 283.293
+        "median": 240.908,
+        "min": 229.956,
+        "max": 280.189
       },
       "p99_ms": {
-        "median": 274.405,
-        "min": 266.14,
-        "max": 293.462
+        "median": 266.102,
+        "min": 232.007,
+        "max": 307.683
       },
       "proxy_failovers": 0
     }
@@ -492,16 +507,16 @@
   "limit_7_normal": {
     "successes": 330,
     "failures": 170,
-    "accepted_rps": 31.83,
-    "p95_ms": 485.928,
-    "p99_ms": 534.473
+    "accepted_rps": 32.033,
+    "p95_ms": 499.989,
+    "p99_ms": 528.883
   },
   "notes": [
     "The HA proxy is a local test harness, not a production load balancer.",
     "Admission is per gateway. Limit 4 per gateway gives a total of 8; limit 7 per gateway gives a total of 14.",
     "During failover the surviving gateway keeps its local limit, so total admission capacity drops.",
     "The proxy retries only on connection errors, not on 503 responses.",
-    "All three runs had one proxy-level failover and no proxy connection errors.",
+    "All three failover runs had one expected upstream ClientConnectorError, retried successfully. There were no client-visible connection failures and no proxy-generated both-down 503.",
     "No AWS resources were used; cost is $0."
   ]
 }

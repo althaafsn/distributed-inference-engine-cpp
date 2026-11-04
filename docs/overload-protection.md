@@ -11,7 +11,7 @@ ADMISSION_MAX_INFLIGHT=7
 - `0` is the default and keeps the previous behavior.
 - When the limit is reached, the gateway returns HTTP `503` with `Retry-After: 1` and a JSON body.
 - The limit covers `/infer` and `/infer_tensor`.
-- The gateway has no `/health` endpoint. `/stats` is never rejected, and worker `/health` endpoints are separate from gateway admission.
+- The gateway `/health` and `/stats` endpoints are never rejected. Worker `/health` endpoints are separate from gateway admission.
 - `/stats` reports:
 
 ```json
@@ -207,12 +207,12 @@ Topology: 2 workers, 2 gateways, 1 proxy, 50 offered requests/s, 10-second phase
 
 | Phase | Successes | p95 | p99 | Accepted throughput | 503s |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Normal | 327 median (316–330) | 268 ms (256–277) | 284 ms | 32.2 /s | 173 (170–184) |
-| Failover | 338 median (317–342) | 234 ms (222–243) | 254 ms | 33.5 /s | 162 (158–183) |
-| Recovery | 336 median (325–338) | 262 ms (253–283) | 274 ms | 33.0 /s | 164 (162–175) |
+| Normal | 343 median (329–352) | 257 ms (243–258) | 271 ms | 33.8 /s | 157 (148–171) |
+| Failover | 322 median (320–343) | 224 ms (213–250) | 241 ms | 31.9 /s | 178 (157–180) |
+| Recovery | 357 median (318–358) | 241 ms (230–280) | 266 ms | 35.2 /s | 143 (142–182) |
 
-- Each failover run killed gateway 1 after 2 seconds. The proxy marked it down, completed the load through gateway 2, and recorded exactly one proxy failover. There were no proxy connection errors. After restart, gateway 1 returned to rotation.
-- A normal run with 7 per gateway (configured total 14) accepted 330/500 but p95 rose to 486 ms and p99 to 534 ms. Four per gateway is the better fit for two workers.
+- Each failover run killed gateway 1 after 2 seconds. The proxy marked it down, completed the load through gateway 2, and recorded exactly one proxy failover. The observed failover window was 0.205–0.257 s. Gateway 1 had accepted 32–37 requests and rejected 12–17 before it was killed. Each run had one expected upstream `ClientConnectorError`, which the proxy retried successfully; there were no client-visible connection failures and no proxy-generated both-down 503. After restart, gateway 1 returned to rotation.
+- A normal run with 7 per gateway (configured total 14) accepted 330/500 but p95 rose to 500 ms and p99 to 529 ms. Four per gateway is the better fit for two workers.
 - Admission is local to each gateway. During failover the survivor keeps its limit of 4, so the configured total drops from 8 to 4. In this workload the workers still allowed similar goodput, but that is a capacity tradeoff, not a global admission guarantee.
 - The proxy is a local test harness, not a production load balancer. It shares the host CPU and does not implement TLS, connection draining, or multi-host failover.
 

@@ -220,6 +220,15 @@ def main(argv: list[str] | None = None) -> int:
         run_record["normal_state"] = collect_state(args, "normal", gateways)
         if args.normal_only:
             (args.output / "run.json").write_text(json.dumps(run_record, indent=2) + "\n")
+            print(
+                json.dumps(
+                    {
+                        "normal": run_record["normal"],
+                        "observed_failover_seconds": None,
+                    }
+                ),
+                flush=True,
+            )
             return 0
 
         print("failover phase", flush=True)
@@ -227,9 +236,22 @@ def main(argv: list[str] | None = None) -> int:
         async def failover() -> dict:
             task = asyncio.create_task(run_load(args, manifest, "failover"))
             await asyncio.sleep(args.kill_after)
+            run_record["failover_gateway1_before_kill"] = get_json(
+                f"http://127.0.0.1:{args.gateway_ports[0]}/stats"
+            )
+            killed_at = time.monotonic()
             gateways[0].terminate()
             while gateways[0].poll() is None:
                 await asyncio.sleep(0.05)
+            deadline = time.monotonic() + 5.0
+            while time.monotonic() < deadline:
+                proxy_state = await asyncio.to_thread(
+                    get_json, f"http://127.0.0.1:{args.proxy_port}/ha/stats"
+                )
+                if not proxy_state["upstreams"][0]["healthy"]:
+                    run_record["observed_failover_seconds"] = round(time.monotonic() - killed_at, 3)
+                    break
+                await asyncio.sleep(0.1)
             run_record["gateway1_terminated_at_seconds"] = args.kill_after
             return await task
 
@@ -243,6 +265,17 @@ def main(argv: list[str] | None = None) -> int:
         run_record["recovery"] = asyncio.run(run_load(args, manifest, "recovery"))
         run_record["recovery_state"] = collect_state(args, "recovery", gateways)
         (args.output / "run.json").write_text(json.dumps(run_record, indent=2) + "\n")
+        print(
+            json.dumps(
+                {
+                    "normal": run_record["normal"],
+                    "failover": run_record["failover"],
+                    "recovery": run_record["recovery"],
+                    "observed_failover_seconds": run_record.get("observed_failover_seconds"),
+                }
+            ),
+            flush=True,
+        )
         return 0
     finally:
         stop_process(proxy)

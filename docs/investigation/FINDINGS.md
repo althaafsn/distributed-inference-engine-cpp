@@ -133,8 +133,8 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 ## Gateway HA and failover (cycle 11)
 
 - Added a gateway `/health` endpoint, a local aiohttp proxy with health checks and connection-error failover, and a two-gateway orchestration script.
-- Three normal/failover/recovery runs at 50 req/s: normal 327/500 median successes (316–330), p95 268 ms (256–277); failover 338/500 (317–342), p95 234 ms (222–243), one proxy failover per run and no proxy connection errors; recovery 336/500 (325–338), p95 262 ms (253–283).
-- Four per gateway (total 8) gave p95 268 ms; seven per gateway (total 14) gave p95 486 ms. Per-gateway admission limits sum, so the total must fit the two workers.
+- Three normal/failover/recovery runs at 50 req/s: normal 343/500 median successes (329–352), p95 257 ms (243–258); failover 322/500 (320–343), p95 224 ms (213–250), one proxy failover per run with one expected upstream connection error retried successfully, no client-visible connection failures, observed failover window 0.205–0.257 s; recovery 357/500 (318–358), p95 241 ms (230–280).
+- Four per gateway (total 8) gave p95 257 ms; seven per gateway (total 14) gave p95 500 ms. Per-gateway admission limits sum, so the total must fit the two workers.
 - The proxy removes the gateway single point of failure in this local test. Admission is still local: the surviving gateway keeps its limit, so total admission capacity drops during failover. A production design needs a shared/global limiter or load-balancer-aware limits.
 - Cost $0; local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-gateway-ha.json`.
 

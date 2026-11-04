@@ -98,8 +98,13 @@ Add `benchmark-aws/run_ha.py`:
 
 ```sh
 python3 -m unittest tests.test_ha_proxy tests.test_gateway_health -v
-BENCH_WORKER_BIN=... BENCH_GATEWAY_BIN=... BENCH_MODEL=... \
-  python3 benchmark-aws/run_ha.py --rate 50 --duration 10
+python3 benchmark-aws/run_ha.py \
+  --model models/resnet50-v2-7.onnx \
+  --data benchmark-aws/data/imagenet500 \
+  --output /tmp/opencode/ha-run \
+  --worker-bin /tmp/opencode/cmake-build-hardening/worker_node \
+  --gateway-bin /tmp/opencode/cmake-build-hardening/gateway \
+  --rate 50 --duration 10
 ctest --test-dir /tmp/opencode/cmake-build-hardening --output-on-failure
 python3 -m unittest discover -s tests -v
 ruff check benchmark-aws tests

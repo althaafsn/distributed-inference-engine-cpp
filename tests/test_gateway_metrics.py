@@ -165,6 +165,10 @@ class GatewayMetricsTests(unittest.TestCase):
         self.assertTrue(self.worker.received.wait(timeout=5))
         text = self.metrics()
         self.assertIn("gateway_admission_in_flight 1", text)
+        with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/health", timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            health = json.load(response)
+        self.assertEqual(health["status"], "ok")
 
         status, body = self.infer("second", timeout=2)
         self.assertEqual(status, 503)

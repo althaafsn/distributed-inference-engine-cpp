@@ -187,6 +187,15 @@ a longer one to that shape. Each request therefore occupies exactly one
 model-sized slot in a batch; an oversized request cannot shift the samples after
 it.
 
+#### GET /health
+
+Get gateway health and identity. This endpoint is never admission-gated.
+
+Response:
+```json
+{"status": "ok", "gateway_id": "gateway-1"}
+```
+
 #### GET /stats
 
 Get gateway statistics and circuit breaker states.
@@ -194,6 +203,7 @@ Get gateway statistics and circuit breaker states.
 Response:
 ```json
 {
+  "gateway_id": "gateway-1",
   "total_workers": 3,
   "circuit_breakers": [
     {

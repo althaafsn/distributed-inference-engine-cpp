@@ -21,6 +21,7 @@ class FakeGateway:
     def __init__(self, gateway_id):
         self.gateway_id = gateway_id
         self.healthy = True
+        self.respond_status = 200
         self.hits = 0
         self.app = web.Application()
         self.app.router.add_get("/health", self.health)
@@ -35,6 +36,12 @@ class FakeGateway:
     async def infer(self, request):
         self.hits += 1
         body = await request.json()
+        if self.respond_status != 200:
+            return web.json_response(
+                {"error": "failure"},
+                status=self.respond_status,
+                headers={"Retry-After": "1"},
+            )
         return web.json_response({"request_id": body.get("request_id"), "output_data": [1.0]})
 
 
@@ -127,6 +134,16 @@ class HAProxyTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(self.gateway2.hits, 1)
         stats = await self.stats()
         self.assertGreaterEqual(stats["failovers"], 1)
+
+    async def test_503_is_forwarded_without_retry(self):
+        self.gateway1.respond_status = 503
+        self.gateway2.respond_status = 503
+        async with self.client.post(
+            "/infer", json={"request_id": "no-retry", "input_data": [1.0]}
+        ) as response:
+            self.assertEqual(response.status, 503)
+            self.assertEqual(response.headers.get("Retry-After"), "1")
+        self.assertEqual(self.gateway1.hits + self.gateway2.hits, 1)
 
     async def test_both_gateways_down_returns_503(self):
         self.gateway1.healthy = False
