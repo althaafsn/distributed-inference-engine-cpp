@@ -141,8 +141,16 @@ class CreateAlbTests(unittest.TestCase):
         ):
             ha_controller.create_alb(self.state(), Path("state.json"))
 
-        tagged = {command for command, args in commands if "--tags" in args}
-        self.assertEqual(tagged, {"create-target-group", "create-load-balancer"})
+        tagged = {
+            command: args[args.index("--tags") + 1]
+            for command, args in commands
+            if "--tags" in args
+        }
+        expected = f"Key={ha_controller.controller.TAG_KEY},Value=infer-test"
+        self.assertEqual(
+            tagged,
+            {"create-target-group": expected, "create-load-balancer": expected},
+        )
 
 
 class RunLimitTests(unittest.TestCase):

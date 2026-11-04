@@ -36,6 +36,7 @@ REQUIRED_ELB_ACTIONS = [
     "elasticloadbalancing:RegisterTargets",
     "elasticloadbalancing:DeregisterTargets",
     "elasticloadbalancing:DescribeTargetHealth",
+    "elasticloadbalancing:AddTags",
 ]
 
 

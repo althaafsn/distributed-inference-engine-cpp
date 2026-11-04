@@ -15,7 +15,8 @@
         "elasticloadbalancing:DeleteListener",
         "elasticloadbalancing:RegisterTargets",
         "elasticloadbalancing:DeregisterTargets",
-        "elasticloadbalancing:DescribeTargetHealth"
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:AddTags"
       ],
       "Resource": "*"
     }
