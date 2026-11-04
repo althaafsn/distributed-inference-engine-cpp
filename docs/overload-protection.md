@@ -138,7 +138,7 @@ Sanitized artifact: `benchmarks/results/2026-11-04-aws-admission-validation.json
 
 ## Adaptive admission and metrics
 
-The gateway now exposes Prometheus text metrics at `/metrics` and can adapt the in-flight limit from observed accepted latency.
+The gateway exposes Prometheus metrics at `/metrics` and supports an opt-in adaptive in-flight limit.
 
 ### Metrics
 
@@ -165,25 +165,26 @@ ADMISSION_INTERVAL_MS=500
 - The limit starts at `ADMISSION_MAX_INFLIGHT`.
 - Once per interval, one request elects itself to update the limit from the last 256 successful requests.
 - Fewer than 20 samples: hold.
-- p95 above 110% of target: decrease by 20%.
-- p95 below 75% of target: increase by 1.
+- p95 above 110% of target: decrease by 20%, never below the configured minimum.
+- p95 below 75% of target: increase by 1, never above the configured maximum.
 - Otherwise hold. This deadband reduces oscillation around the target.
 - The latency window is cleared after a change so stale samples do not dominate the next decision. `observed_samples` is the sample count used by the last decision, not the current window size.
 - Static mode is unchanged; `ADMISSION_ADAPTIVE=0` keeps the previous behavior.
 
 ### Local experiment
 
-Two local workers, ResNet50, 500 unique images, cache 1, 10-second runs, 128 connections. Static 7 was compared with adaptive max 12, min 2, target 400 ms, interval 500 ms.
+Two local workers, ResNet50, 500 unique images, cache 1, 10-second runs, 128 connections. Static 7 was compared with adaptive max 12, min 2, target 400 ms, interval 500 ms. All 12 conditions used gateway SHA-256 `b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609` and worker SHA-256 `603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794`.
 
 | Offered load | Static 7 | Adaptive | Adaptive final limit |
 | ---: | --- | --- | ---: |
-| 25 req/s | 246 / 250 accepted; 4 controlled 503s; p95 291 ms | 250 / 250 accepted; 0 503s; p95 202 ms | 12 |
-| 50 req/s | 283 / 500 median accepted (245–305); 217 503s (195–255); p95 387 ms (382–388) | 309 / 500 median accepted (291–315); 191 503s (185–209); p95 456 ms (438–494) | 7–8 |
-| 100 req/s | 214 / 1,000 accepted; 786 503s; p95 394 ms | 315 / 1,000 accepted; 685 503s; p95 494 ms | 7 |
+| 25 req/s | 250 / 250 accepted; 0 503s; p95 158 ms | 250 / 250 accepted; 0 503s; p95 362 ms | 12 |
+| 50 req/s | 264 / 500 median accepted (263–278); 236 503s (222–237); p95 397 ms (394–399) | 297 / 500 median accepted (260–300); 203 503s (200–240); p95 534 ms (471–552) | 6–7 |
+| 100 req/s | 277 / 1,000 accepted; 723 503s; p95 401 ms | 266 / 1,000 accepted; 734 503s; p95 557 ms | 7 |
 
-At 50 and 100 requests/s, the adaptive p95 includes the convergence ramp from the initial limit of 12. The final observed p95 was 354–419 ms at 50 and 391 ms at 100, close to the 400 ms target. Static 7 was already manually calibrated and has the better whole-run p95 at 50. Adaptive removes the manual tuning and uses the latency budget to accept more requests, especially at 100.
-
-At 25 requests/s, static 7 was too conservative: it rejected 4 requests, while adaptive stayed at the ceiling and accepted all 250 with lower p95.
+- Adaptive converges near the target: final observed p95 was 360 ms at 25, 351–385 ms at 50, and 398 ms at 100.
+- The whole-run p95 is still worse than static 7. At 25 requests/s the controller stays at the ceiling and accepts the 400 ms budget, so p95 is 362 ms versus 158 ms for static 7. At 50 it accepts more requests (297 versus 264) but p95 is 534 ms versus 397 ms. At 100 it accepts slightly fewer requests (266 versus 277) and p95 is 557 ms versus 401 ms.
+- The 10-second window includes the convergence ramp from the initial limit of 12 and large run-to-run variance. Static 7 was already manually calibrated for this topology.
+- This is a mixed result: adaptive admission works mechanically and converges near the target, but it did not beat the calibrated static limit in these short runs. The metrics surface and retry client are the durable deliverables; the policy needs a longer evaluation window, a lower initial limit, or a faster decrease before it can replace static tuning.
 
 ### Retry-aware client
 
@@ -191,12 +192,10 @@ At 100 requests/s with `--retry-attempts 3`, `Retry-After` and exponential backo
 
 | Admission | Final successes | Attempts | Retried requests | Retry successes | Exhausted | p95 | Wall |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Static 7 | 326 / 1,000 | 3,436 | 876 | 202 | 674 | 3,397 ms | 13.2 s |
-| Adaptive | 366 / 1,000 | 3,368 | 868 | 234 | 634 | 3,304 ms | 13.1 s |
+| Static 7 | 399 / 1,000 | 3,280 | 842 | 241 | 601 | 3,323 ms | 13.2 s |
+| Adaptive | 320 / 1,000 | 3,437 | 883 | 203 | 680 | 3,329 ms | 13.2 s |
 
-Retry mode raises final goodput from 214–315 to 326–366 requests, but p95 rises to about 3.3–3.4 seconds because the metric includes the wait between attempts. It is a client-side goodput/latency tradeoff, not a free improvement. The adaptive and static retry results are similar; the retry policy dominates under this load.
-
-The adaptive and retry runs used gateway SHA-256 `857b52ecf909e3b580b6ced4fc3e8fff3b7077b007810a4f1fb2481dcc4f0697` and worker SHA-256 `603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794`.
+Retry mode raises final goodput from 266–277 to 320–399 requests, but p95 rises to about 3.3 seconds because the metric includes the wait between attempts. It is a client-side goodput/latency tradeoff, not a free improvement.
 
 Sanitized artifact: `benchmarks/results/2026-11-04-adaptive-admission.json`.
 

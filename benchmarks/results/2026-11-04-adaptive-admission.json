@@ -3,7 +3,7 @@
   "date": "2026-11-04",
   "scope": "Local adaptive admission, metrics, and retry comparison. Not an AWS or production result.",
   "binaries": {
-    "gateway_sha256": "857b52ecf909e3b580b6ced4fc3e8fff3b7077b007810a4f1fb2481dcc4f0697",
+    "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
     "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794"
   },
   "hardware": {
@@ -41,20 +41,21 @@
       "offered_rate_rps": 25,
       "admission_mode": "static_7",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 250,
-      "successes": 246,
-      "failures": 4,
-      "shed_503": 4,
+      "successes": 250,
+      "failures": 0,
+      "shed_503": 0,
       "status_counts": {
-        "200": 246,
-        "503": 4
+        "200": 250
       },
-      "accepted_rps": 24.426,
-      "wall_seconds": 10.071,
+      "accepted_rps": 24.918,
+      "wall_seconds": 10.033,
       "latency_ms": {
-        "p50": 80.468,
-        "p95": 290.68,
-        "p99": 350.939
+        "p50": 81.307,
+        "p95": 158.162,
+        "p99": 184.975
       },
       "retry": {
         "attempts": 250,
@@ -63,7 +64,7 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 246,
+        "accepted": 250,
         "adaptive": false,
         "configured_max": 7,
         "in_flight": 0,
@@ -72,7 +73,7 @@
         "min_in_flight": 7,
         "observed_p95_ms": -1,
         "observed_samples": 0,
-        "rejected": 4,
+        "rejected": 0,
         "target_p95_ms": 400
       },
       "limit_changes": 0,
@@ -83,6 +84,8 @@
       "offered_rate_rps": 25,
       "admission_mode": "adaptive",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 250,
       "successes": 250,
       "failures": 0,
@@ -90,12 +93,12 @@
       "status_counts": {
         "200": 250
       },
-      "accepted_rps": 24.912,
-      "wall_seconds": 10.035,
+      "accepted_rps": 24.919,
+      "wall_seconds": 10.032,
       "latency_ms": {
-        "p50": 83.13,
-        "p95": 201.806,
-        "p99": 288.267
+        "p50": 88.551,
+        "p95": 362.062,
+        "p99": 395.384
       },
       "retry": {
         "attempts": 250,
@@ -111,7 +114,7 @@
         "limit_changes": 0,
         "max_in_flight": 12,
         "min_in_flight": 2,
-        "observed_p95_ms": 199,
+        "observed_p95_ms": 360,
         "observed_samples": 246,
         "rejected": 0,
         "target_p95_ms": 400
@@ -124,20 +127,22 @@
       "offered_rate_rps": 50,
       "admission_mode": "static_7",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 500,
-      "successes": 245,
-      "failures": 255,
-      "shed_503": 255,
+      "successes": 264,
+      "failures": 236,
+      "shed_503": 236,
       "status_counts": {
-        "200": 245,
-        "503": 255
+        "200": 264,
+        "503": 236
       },
-      "accepted_rps": 23.954,
-      "wall_seconds": 10.228,
+      "accepted_rps": 25.799,
+      "wall_seconds": 10.233,
       "latency_ms": {
-        "p50": 301.571,
-        "p95": 387.522,
-        "p99": 404.933
+        "p50": 263.318,
+        "p95": 393.987,
+        "p99": 407.47
       },
       "retry": {
         "attempts": 500,
@@ -146,7 +151,7 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 245,
+        "accepted": 264,
         "adaptive": false,
         "configured_max": 7,
         "in_flight": 0,
@@ -155,7 +160,7 @@
         "min_in_flight": 7,
         "observed_p95_ms": -1,
         "observed_samples": 0,
-        "rejected": 255,
+        "rejected": 236,
         "target_p95_ms": 400
       },
       "limit_changes": 0,
@@ -166,20 +171,22 @@
       "offered_rate_rps": 50,
       "admission_mode": "static_7",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 500,
-      "successes": 283,
-      "failures": 217,
-      "shed_503": 217,
+      "successes": 263,
+      "failures": 237,
+      "shed_503": 237,
       "status_counts": {
-        "200": 283,
-        "503": 217
+        "200": 263,
+        "503": 237
       },
-      "accepted_rps": 27.998,
-      "wall_seconds": 10.108,
+      "accepted_rps": 25.8,
+      "wall_seconds": 10.194,
       "latency_ms": {
-        "p50": 233.585,
-        "p95": 382.43,
-        "p99": 396.915
+        "p50": 249.697,
+        "p95": 399.287,
+        "p99": 407.933
       },
       "retry": {
         "attempts": 500,
@@ -188,7 +195,7 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 283,
+        "accepted": 263,
         "adaptive": false,
         "configured_max": 7,
         "in_flight": 0,
@@ -197,7 +204,7 @@
         "min_in_flight": 7,
         "observed_p95_ms": -1,
         "observed_samples": 0,
-        "rejected": 217,
+        "rejected": 237,
         "target_p95_ms": 400
       },
       "limit_changes": 0,
@@ -208,20 +215,22 @@
       "offered_rate_rps": 50,
       "admission_mode": "static_7",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 500,
-      "successes": 305,
-      "failures": 195,
-      "shed_503": 195,
+      "successes": 278,
+      "failures": 222,
+      "shed_503": 222,
       "status_counts": {
-        "200": 305,
-        "503": 195
+        "200": 278,
+        "503": 222
       },
-      "accepted_rps": 30.049,
-      "wall_seconds": 10.15,
+      "accepted_rps": 27.301,
+      "wall_seconds": 10.183,
       "latency_ms": {
-        "p50": 189.528,
-        "p95": 387.194,
-        "p99": 420.56
+        "p50": 244.328,
+        "p95": 397.327,
+        "p99": 414.409
       },
       "retry": {
         "attempts": 500,
@@ -230,7 +239,7 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 305,
+        "accepted": 278,
         "adaptive": false,
         "configured_max": 7,
         "in_flight": 0,
@@ -239,7 +248,7 @@
         "min_in_flight": 7,
         "observed_p95_ms": -1,
         "observed_samples": 0,
-        "rejected": 195,
+        "rejected": 222,
         "target_p95_ms": 400
       },
       "limit_changes": 0,
@@ -250,20 +259,22 @@
       "offered_rate_rps": 50,
       "admission_mode": "adaptive",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 500,
-      "successes": 291,
-      "failures": 209,
-      "shed_503": 209,
+      "successes": 297,
+      "failures": 203,
+      "shed_503": 203,
       "status_counts": {
-        "200": 291,
-        "503": 209
+        "200": 297,
+        "503": 203
       },
-      "accepted_rps": 28.328,
-      "wall_seconds": 10.273,
+      "accepted_rps": 29.071,
+      "wall_seconds": 10.216,
       "latency_ms": {
-        "p50": 283.557,
-        "p95": 437.659,
-        "p99": 479.347
+        "p50": 226.704,
+        "p95": 471.336,
+        "p99": 530.694
       },
       "retry": {
         "attempts": 500,
@@ -272,22 +283,23 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 291,
+        "accepted": 297,
         "adaptive": true,
         "configured_max": 12,
         "in_flight": 0,
-        "limit_changes": 2,
-        "max_in_flight": 8,
+        "limit_changes": 3,
+        "max_in_flight": 7,
         "min_in_flight": 2,
-        "observed_p95_ms": 419,
-        "observed_samples": 218,
-        "rejected": 209,
+        "observed_p95_ms": 385,
+        "observed_samples": 196,
+        "rejected": 203,
         "target_p95_ms": 400
       },
-      "limit_changes": 2,
+      "limit_changes": 3,
       "limit_trace": [
-        "Adaptive admission limit: 12 -> 10 (p95 448 ms, samples 23)",
-        "Adaptive admission limit: 10 -> 8 (p95 477 ms, samples 31)"
+        "Adaptive admission limit: 12 -> 10 (p95 464 ms, samples 25)",
+        "Adaptive admission limit: 10 -> 8 (p95 528 ms, samples 34)",
+        "Adaptive admission limit: 8 -> 7 (p95 496 ms, samples 25)"
       ]
     },
     {
@@ -295,20 +307,22 @@
       "offered_rate_rps": 50,
       "admission_mode": "adaptive",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 500,
-      "successes": 309,
-      "failures": 191,
-      "shed_503": 191,
+      "successes": 260,
+      "failures": 240,
+      "shed_503": 240,
       "status_counts": {
-        "200": 309,
-        "503": 191
+        "200": 260,
+        "503": 240
       },
-      "accepted_rps": 30.321,
-      "wall_seconds": 10.191,
+      "accepted_rps": 25.673,
+      "wall_seconds": 10.127,
       "latency_ms": {
-        "p50": 215.587,
-        "p95": 494.139,
-        "p99": 570.427
+        "p50": 247.067,
+        "p95": 534.484,
+        "p99": 648.208
       },
       "retry": {
         "attempts": 500,
@@ -317,23 +331,24 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 309,
+        "accepted": 260,
         "adaptive": true,
         "configured_max": 12,
         "in_flight": 0,
-        "limit_changes": 3,
-        "max_in_flight": 7,
+        "limit_changes": 4,
+        "max_in_flight": 6,
         "min_in_flight": 2,
-        "observed_p95_ms": 372,
-        "observed_samples": 205,
-        "rejected": 191,
+        "observed_p95_ms": 351,
+        "observed_samples": 150,
+        "rejected": 240,
         "target_p95_ms": 400
       },
-      "limit_changes": 3,
+      "limit_changes": 4,
       "limit_trace": [
-        "Adaptive admission limit: 12 -> 10 (p95 472 ms, samples 28)",
-        "Adaptive admission limit: 10 -> 8 (p95 588 ms, samples 28)",
-        "Adaptive admission limit: 8 -> 7 (p95 522 ms, samples 31)"
+        "Adaptive admission limit: 12 -> 10 (p95 611 ms, samples 20)",
+        "Adaptive admission limit: 10 -> 8 (p95 665 ms, samples 25)",
+        "Adaptive admission limit: 8 -> 7 (p95 510 ms, samples 22)",
+        "Adaptive admission limit: 7 -> 6 (p95 459 ms, samples 27)"
       ]
     },
     {
@@ -341,20 +356,22 @@
       "offered_rate_rps": 50,
       "admission_mode": "adaptive",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 500,
-      "successes": 315,
-      "failures": 185,
-      "shed_503": 185,
+      "successes": 300,
+      "failures": 200,
+      "shed_503": 200,
       "status_counts": {
-        "200": 315,
-        "503": 185
+        "200": 300,
+        "503": 200
       },
-      "accepted_rps": 30.939,
-      "wall_seconds": 10.181,
+      "accepted_rps": 29.651,
+      "wall_seconds": 10.118,
       "latency_ms": {
-        "p50": 201.941,
-        "p95": 456.132,
-        "p99": 594.946
+        "p50": 208.629,
+        "p95": 552.405,
+        "p99": 680.516
       },
       "retry": {
         "attempts": 500,
@@ -363,25 +380,23 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 315,
+        "accepted": 300,
         "adaptive": true,
         "configured_max": 12,
         "in_flight": 0,
-        "limit_changes": 5,
+        "limit_changes": 3,
         "max_in_flight": 7,
         "min_in_flight": 2,
-        "observed_p95_ms": 354,
-        "observed_samples": 112,
-        "rejected": 185,
+        "observed_p95_ms": 379,
+        "observed_samples": 196,
+        "rejected": 200,
         "target_p95_ms": 400
       },
-      "limit_changes": 5,
+      "limit_changes": 3,
       "limit_trace": [
-        "Adaptive admission limit: 12 -> 10 (p95 615 ms, samples 27)",
-        "Adaptive admission limit: 10 -> 8 (p95 453 ms, samples 63)",
-        "Adaptive admission limit: 8 -> 7 (p95 553 ms, samples 33)",
-        "Adaptive admission limit: 7 -> 6 (p95 446 ms, samples 30)",
-        "Adaptive admission limit: 6 -> 7 (p95 297 ms, samples 33)"
+        "Adaptive admission limit: 12 -> 10 (p95 699 ms, samples 30)",
+        "Adaptive admission limit: 10 -> 8 (p95 591 ms, samples 21)",
+        "Adaptive admission limit: 8 -> 7 (p95 465 ms, samples 36)"
       ]
     },
     {
@@ -389,20 +404,22 @@
       "offered_rate_rps": 100,
       "admission_mode": "static_7",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 1000,
-      "successes": 214,
-      "failures": 786,
-      "shed_503": 786,
+      "successes": 277,
+      "failures": 723,
+      "shed_503": 723,
       "status_counts": {
-        "200": 214,
-        "503": 786
+        "200": 277,
+        "503": 723
       },
-      "accepted_rps": 20.871,
-      "wall_seconds": 10.254,
+      "accepted_rps": 27.016,
+      "wall_seconds": 10.253,
       "latency_ms": {
-        "p50": 360.704,
-        "p95": 393.84,
-        "p99": 403.509
+        "p50": 265.379,
+        "p95": 400.917,
+        "p99": 412.722
       },
       "retry": {
         "attempts": 1000,
@@ -411,7 +428,7 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 214,
+        "accepted": 277,
         "adaptive": false,
         "configured_max": 7,
         "in_flight": 0,
@@ -420,7 +437,7 @@
         "min_in_flight": 7,
         "observed_p95_ms": -1,
         "observed_samples": 0,
-        "rejected": 786,
+        "rejected": 723,
         "target_p95_ms": 400
       },
       "limit_changes": 0,
@@ -431,20 +448,22 @@
       "offered_rate_rps": 100,
       "admission_mode": "adaptive",
       "retry_enabled": false,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 1000,
-      "successes": 315,
-      "failures": 685,
-      "shed_503": 685,
+      "successes": 266,
+      "failures": 734,
+      "shed_503": 734,
       "status_counts": {
-        "200": 315,
-        "503": 685
+        "200": 266,
+        "503": 734
       },
-      "accepted_rps": 30.763,
-      "wall_seconds": 10.24,
+      "accepted_rps": 25.992,
+      "wall_seconds": 10.234,
       "latency_ms": {
-        "p50": 255.447,
-        "p95": 493.699,
-        "p99": 535.012
+        "p50": 309.985,
+        "p95": 556.601,
+        "p99": 608.124
       },
       "retry": {
         "attempts": 1000,
@@ -453,23 +472,23 @@
         "retry_exhausted": 0
       },
       "gateway_admission": {
-        "accepted": 315,
+        "accepted": 266,
         "adaptive": true,
         "configured_max": 12,
         "in_flight": 0,
         "limit_changes": 3,
         "max_in_flight": 7,
         "min_in_flight": 2,
-        "observed_p95_ms": 391,
-        "observed_samples": 141,
-        "rejected": 685,
+        "observed_p95_ms": 398,
+        "observed_samples": 169,
+        "rejected": 734,
         "target_p95_ms": 400
       },
       "limit_changes": 3,
       "limit_trace": [
-        "Adaptive admission limit: 12 -> 10 (p95 521 ms, samples 26)",
-        "Adaptive admission limit: 10 -> 8 (p95 505 ms, samples 102)",
-        "Adaptive admission limit: 8 -> 7 (p95 528 ms, samples 30)"
+        "Adaptive admission limit: 12 -> 10 (p95 512 ms, samples 30)",
+        "Adaptive admission limit: 10 -> 8 (p95 613 ms, samples 22)",
+        "Adaptive admission limit: 8 -> 7 (p95 579 ms, samples 28)"
       ]
     },
     {
@@ -477,29 +496,31 @@
       "offered_rate_rps": 100,
       "admission_mode": "static_7",
       "retry_enabled": true,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 1000,
-      "successes": 326,
-      "failures": 674,
-      "shed_503": 674,
+      "successes": 399,
+      "failures": 601,
+      "shed_503": 601,
       "status_counts": {
-        "200": 326,
-        "503": 674
+        "200": 399,
+        "503": 601
       },
-      "accepted_rps": 24.634,
-      "wall_seconds": 13.234,
+      "accepted_rps": 30.209,
+      "wall_seconds": 13.208,
       "latency_ms": {
-        "p50": 1328.743,
-        "p95": 3396.708,
-        "p99": 3411.269
+        "p50": 1208.874,
+        "p95": 3322.622,
+        "p99": 3411.003
       },
       "retry": {
-        "attempts": 3436,
-        "retried_requests": 876,
-        "retry_successes": 202,
-        "retry_exhausted": 674
+        "attempts": 3280,
+        "retried_requests": 842,
+        "retry_successes": 241,
+        "retry_exhausted": 601
       },
       "gateway_admission": {
-        "accepted": 326,
+        "accepted": 399,
         "adaptive": false,
         "configured_max": 7,
         "in_flight": 0,
@@ -508,7 +529,7 @@
         "min_in_flight": 7,
         "observed_p95_ms": -1,
         "observed_samples": 0,
-        "rejected": 3110,
+        "rejected": 2881,
         "target_p95_ms": 400
       },
       "limit_changes": 0,
@@ -519,46 +540,48 @@
       "offered_rate_rps": 100,
       "admission_mode": "adaptive",
       "retry_enabled": true,
+      "gateway_sha256": "b32f2afc445fbf274a66cfb790a4298a34790f79a806d7b035508552a0c98609",
+      "worker_sha256": "603f3453730e4b8af1275eee8454db0a3ab1c5b3b8d28ecf99bb0439e1adf794",
       "requests": 1000,
-      "successes": 366,
-      "failures": 634,
-      "shed_503": 634,
+      "successes": 320,
+      "failures": 680,
+      "shed_503": 680,
       "status_counts": {
-        "200": 366,
-        "503": 634
+        "200": 320,
+        "503": 680
       },
-      "accepted_rps": 27.881,
-      "wall_seconds": 13.127,
+      "accepted_rps": 24.288,
+      "wall_seconds": 13.175,
       "latency_ms": {
-        "p50": 1253.583,
-        "p95": 3304.311,
-        "p99": 3390.889
+        "p50": 1320.359,
+        "p95": 3329.358,
+        "p99": 3380.554
       },
       "retry": {
-        "attempts": 3368,
-        "retried_requests": 868,
-        "retry_successes": 234,
-        "retry_exhausted": 634
+        "attempts": 3437,
+        "retried_requests": 883,
+        "retry_successes": 203,
+        "retry_exhausted": 680
       },
       "gateway_admission": {
-        "accepted": 366,
+        "accepted": 320,
         "adaptive": true,
         "configured_max": 12,
         "in_flight": 0,
         "limit_changes": 4,
         "max_in_flight": 6,
         "min_in_flight": 2,
-        "observed_p95_ms": 377,
-        "observed_samples": 245,
-        "rejected": 3002,
+        "observed_p95_ms": 384,
+        "observed_samples": 208,
+        "rejected": 3117,
         "target_p95_ms": 400
       },
       "limit_changes": 4,
       "limit_trace": [
-        "Adaptive admission limit: 12 -> 10 (p95 550 ms, samples 28)",
-        "Adaptive admission limit: 10 -> 8 (p95 553 ms, samples 26)",
-        "Adaptive admission limit: 8 -> 7 (p95 599 ms, samples 23)",
-        "Adaptive admission limit: 7 -> 6 (p95 483 ms, samples 27)"
+        "Adaptive admission limit: 12 -> 10 (p95 631 ms, samples 26)",
+        "Adaptive admission limit: 10 -> 8 (p95 731 ms, samples 27)",
+        "Adaptive admission limit: 8 -> 7 (p95 571 ms, samples 21)",
+        "Adaptive admission limit: 7 -> 6 (p95 472 ms, samples 20)"
       ]
     }
   ],
@@ -566,37 +589,40 @@
     "25_static": {
       "runs": 1,
       "successes": {
-        "median": 246,
-        "min": 246,
-        "max": 246
+        "median": 250,
+        "min": 250,
+        "max": 250
       },
       "shed_503": {
-        "median": 4,
-        "min": 4,
-        "max": 4
+        "median": 0,
+        "min": 0,
+        "max": 0
       },
       "accepted_rps": {
-        "median": 24.426,
-        "min": 24.426,
-        "max": 24.426
+        "median": 24.918,
+        "min": 24.918,
+        "max": 24.918
       },
       "wall_seconds": {
-        "median": 10.071,
-        "min": 10.071,
-        "max": 10.071
+        "median": 10.033,
+        "min": 10.033,
+        "max": 10.033
       },
       "p95_ms": {
-        "median": 290.68,
-        "min": 290.68,
-        "max": 290.68
+        "median": 158.162,
+        "min": 158.162,
+        "max": 158.162
       },
       "p99_ms": {
-        "median": 350.939,
-        "min": 350.939,
-        "max": 350.939
+        "median": 184.975,
+        "min": 184.975,
+        "max": 184.975
       },
       "final_limits": [
         7
+      ],
+      "final_observed_p95_ms": [
+        -1
       ]
     },
     "25_adaptive": {
@@ -612,250 +638,275 @@
         "max": 0
       },
       "accepted_rps": {
-        "median": 24.912,
-        "min": 24.912,
-        "max": 24.912
+        "median": 24.919,
+        "min": 24.919,
+        "max": 24.919
       },
       "wall_seconds": {
-        "median": 10.035,
-        "min": 10.035,
-        "max": 10.035
+        "median": 10.032,
+        "min": 10.032,
+        "max": 10.032
       },
       "p95_ms": {
-        "median": 201.806,
-        "min": 201.806,
-        "max": 201.806
+        "median": 362.062,
+        "min": 362.062,
+        "max": 362.062
       },
       "p99_ms": {
-        "median": 288.267,
-        "min": 288.267,
-        "max": 288.267
+        "median": 395.384,
+        "min": 395.384,
+        "max": 395.384
       },
       "final_limits": [
         12
+      ],
+      "final_observed_p95_ms": [
+        360
       ]
     },
     "50_static": {
       "runs": 3,
       "successes": {
-        "median": 283,
-        "min": 245,
-        "max": 305
+        "median": 264,
+        "min": 263,
+        "max": 278
       },
       "shed_503": {
-        "median": 217,
-        "min": 195,
-        "max": 255
+        "median": 236,
+        "min": 222,
+        "max": 237
       },
       "accepted_rps": {
-        "median": 27.998,
-        "min": 23.954,
-        "max": 30.049
+        "median": 25.8,
+        "min": 25.799,
+        "max": 27.301
       },
       "wall_seconds": {
-        "median": 10.15,
-        "min": 10.108,
-        "max": 10.228
+        "median": 10.194,
+        "min": 10.183,
+        "max": 10.233
       },
       "p95_ms": {
-        "median": 387.194,
-        "min": 382.43,
-        "max": 387.522
+        "median": 397.327,
+        "min": 393.987,
+        "max": 399.287
       },
       "p99_ms": {
-        "median": 404.933,
-        "min": 396.915,
-        "max": 420.56
+        "median": 407.933,
+        "min": 407.47,
+        "max": 414.409
       },
       "final_limits": [
         7
+      ],
+      "final_observed_p95_ms": [
+        -1
       ]
     },
     "50_adaptive": {
       "runs": 3,
       "successes": {
-        "median": 309,
-        "min": 291,
-        "max": 315
+        "median": 297,
+        "min": 260,
+        "max": 300
       },
       "shed_503": {
-        "median": 191,
-        "min": 185,
-        "max": 209
+        "median": 203,
+        "min": 200,
+        "max": 240
       },
       "accepted_rps": {
-        "median": 30.321,
-        "min": 28.328,
-        "max": 30.939
+        "median": 29.071,
+        "min": 25.673,
+        "max": 29.651
       },
       "wall_seconds": {
-        "median": 10.191,
-        "min": 10.181,
-        "max": 10.273
+        "median": 10.127,
+        "min": 10.118,
+        "max": 10.216
       },
       "p95_ms": {
-        "median": 456.132,
-        "min": 437.659,
-        "max": 494.139
+        "median": 534.484,
+        "min": 471.336,
+        "max": 552.405
       },
       "p99_ms": {
-        "median": 570.427,
-        "min": 479.347,
-        "max": 594.946
+        "median": 648.208,
+        "min": 530.694,
+        "max": 680.516
       },
       "final_limits": [
-        7,
-        8
+        6,
+        7
+      ],
+      "final_observed_p95_ms": [
+        351,
+        379,
+        385
       ]
     },
     "100_static": {
       "runs": 1,
       "successes": {
-        "median": 214,
-        "min": 214,
-        "max": 214
+        "median": 277,
+        "min": 277,
+        "max": 277
       },
       "shed_503": {
-        "median": 786,
-        "min": 786,
-        "max": 786
+        "median": 723,
+        "min": 723,
+        "max": 723
       },
       "accepted_rps": {
-        "median": 20.871,
-        "min": 20.871,
-        "max": 20.871
+        "median": 27.016,
+        "min": 27.016,
+        "max": 27.016
       },
       "wall_seconds": {
-        "median": 10.254,
-        "min": 10.254,
-        "max": 10.254
+        "median": 10.253,
+        "min": 10.253,
+        "max": 10.253
       },
       "p95_ms": {
-        "median": 393.84,
-        "min": 393.84,
-        "max": 393.84
+        "median": 400.917,
+        "min": 400.917,
+        "max": 400.917
       },
       "p99_ms": {
-        "median": 403.509,
-        "min": 403.509,
-        "max": 403.509
+        "median": 412.722,
+        "min": 412.722,
+        "max": 412.722
       },
       "final_limits": [
         7
+      ],
+      "final_observed_p95_ms": [
+        -1
       ]
     },
     "100_adaptive": {
       "runs": 1,
       "successes": {
-        "median": 315,
-        "min": 315,
-        "max": 315
+        "median": 266,
+        "min": 266,
+        "max": 266
       },
       "shed_503": {
-        "median": 685,
-        "min": 685,
-        "max": 685
+        "median": 734,
+        "min": 734,
+        "max": 734
       },
       "accepted_rps": {
-        "median": 30.763,
-        "min": 30.763,
-        "max": 30.763
+        "median": 25.992,
+        "min": 25.992,
+        "max": 25.992
       },
       "wall_seconds": {
-        "median": 10.24,
-        "min": 10.24,
-        "max": 10.24
+        "median": 10.234,
+        "min": 10.234,
+        "max": 10.234
       },
       "p95_ms": {
-        "median": 493.699,
-        "min": 493.699,
-        "max": 493.699
+        "median": 556.601,
+        "min": 556.601,
+        "max": 556.601
       },
       "p99_ms": {
-        "median": 535.012,
-        "min": 535.012,
-        "max": 535.012
+        "median": 608.124,
+        "min": 608.124,
+        "max": 608.124
       },
       "final_limits": [
         7
+      ],
+      "final_observed_p95_ms": [
+        398
       ]
     },
     "100_static_retry": {
       "runs": 1,
       "successes": {
-        "median": 326,
-        "min": 326,
-        "max": 326
+        "median": 399,
+        "min": 399,
+        "max": 399
       },
       "shed_503": {
-        "median": 674,
-        "min": 674,
-        "max": 674
+        "median": 601,
+        "min": 601,
+        "max": 601
       },
       "accepted_rps": {
-        "median": 24.634,
-        "min": 24.634,
-        "max": 24.634
+        "median": 30.209,
+        "min": 30.209,
+        "max": 30.209
       },
       "wall_seconds": {
-        "median": 13.234,
-        "min": 13.234,
-        "max": 13.234
+        "median": 13.208,
+        "min": 13.208,
+        "max": 13.208
       },
       "p95_ms": {
-        "median": 3396.708,
-        "min": 3396.708,
-        "max": 3396.708
+        "median": 3322.622,
+        "min": 3322.622,
+        "max": 3322.622
       },
       "p99_ms": {
-        "median": 3411.269,
-        "min": 3411.269,
-        "max": 3411.269
+        "median": 3411.003,
+        "min": 3411.003,
+        "max": 3411.003
       },
       "final_limits": [
         7
+      ],
+      "final_observed_p95_ms": [
+        -1
       ]
     },
     "100_adaptive_retry": {
       "runs": 1,
       "successes": {
-        "median": 366,
-        "min": 366,
-        "max": 366
+        "median": 320,
+        "min": 320,
+        "max": 320
       },
       "shed_503": {
-        "median": 634,
-        "min": 634,
-        "max": 634
+        "median": 680,
+        "min": 680,
+        "max": 680
       },
       "accepted_rps": {
-        "median": 27.881,
-        "min": 27.881,
-        "max": 27.881
+        "median": 24.288,
+        "min": 24.288,
+        "max": 24.288
       },
       "wall_seconds": {
-        "median": 13.127,
-        "min": 13.127,
-        "max": 13.127
+        "median": 13.175,
+        "min": 13.175,
+        "max": 13.175
       },
       "p95_ms": {
-        "median": 3304.311,
-        "min": 3304.311,
-        "max": 3304.311
+        "median": 3329.358,
+        "min": 3329.358,
+        "max": 3329.358
       },
       "p99_ms": {
-        "median": 3390.889,
-        "min": 3390.889,
-        "max": 3390.889
+        "median": 3380.554,
+        "min": 3380.554,
+        "max": 3380.554
       },
       "final_limits": [
         6
+      ],
+      "final_observed_p95_ms": [
+        384
       ]
     }
   },
   "notes": [
+    "All 12 conditions use the same gateway and worker binaries recorded above.",
     "Adaptive runs start at the configured maximum and converge during the 10-second window; their p95 includes the ramp-up.",
     "Static 7 was manually calibrated in the earlier local and AWS tests.",
+    "The adaptive advantage did not reproduce reliably in this short-run matrix; run-to-run variance is large at 25 and 100 requests/s.",
     "Retry p95 includes the time spent waiting between retries; retry mode trades latency for final goodput.",
     "All failures are controlled 503 responses.",
     "No AWS resources were used for this experiment."

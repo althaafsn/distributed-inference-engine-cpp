@@ -124,11 +124,11 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 ## Adaptive admission and metrics (cycle 10)
 
 - Added a Prometheus `/metrics` endpoint, an adaptive admission controller, and a retry-aware load client. Static mode remains the default.
-- At 25 req/s: static 7 accepted 246/250 with 4 controlled 503s and p95 290.7 ms; adaptive accepted 250/250 with p95 201.8 ms and stayed at the ceiling of 12.
-- At 50 req/s: static 7 accepted 283/500 median with p95 387.2 ms; adaptive accepted 309/500 median with p95 456.1 ms and final limit 7–8. Adaptive final observed p95 was 354–419 ms; the whole-run p95 includes the convergence ramp.
-- At 100 req/s: static 7 accepted 214/1,000 with p95 393.8 ms; adaptive accepted 315/1,000 with p95 493.7 ms and final limit 7; final observed p95 was 391 ms.
-- Retry at 100 req/s raised final successes from 214–315 to 326–366, but p95 rose to about 3.3–3.4 s because it includes the wait between attempts.
-- Adaptive removes manual tuning and avoids unnecessary shedding at low load; it is not a free win over a well-tuned static limit. Cost $0, local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-adaptive-admission.json`.
+- At 25 req/s: static 7 accepted 250/250 with p95 158.2 ms; adaptive accepted 250/250 with p95 362.1 ms and stayed at the ceiling of 12.
+- At 50 req/s: static 7 accepted 264/500 median with p95 397.3 ms; adaptive accepted 297/500 median with p95 534.5 ms and final limit 6–7. Adaptive final observed p95 was 351–385 ms; the whole-run p95 includes the convergence ramp.
+- At 100 req/s: static 7 accepted 277/1,000 with p95 400.9 ms; adaptive accepted 266/1,000 with p95 556.6 ms and final limit 7; final observed p95 was 398 ms.
+- Retry at 100 req/s raised final successes from 266–277 to 320–399, but p95 rose to about 3.3 s because it includes the wait between attempts.
+- Adaptive works mechanically and converges near the target, but it did not beat the calibrated static 7 in these 10-second runs. Static 7 remains the default; the metrics surface and retry client are the durable deliverables. Cost $0, local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-adaptive-admission.json`.
 
 ## Portfolio and repository handoff
 
