@@ -29,7 +29,7 @@ The 2026-11-02 campaign used a 500-image ImageNet subset, five pinned ONNX model
 - Least-loaded routing raises 8-worker latency/error capacity from **31.4 to 86.1 requests/s** (2.7×) compared with consistent hashing.
 - ShuffleNetV2-10: **201 requests/s** on 2 workers at **72.2% top-1**. ResNet50-v2-7: **21.9 requests/s** at **78.6% top-1** on the same data.
 - Worker kill at 40 requests/s: **0 failed requests**, 0 top-1 conflicts, 0.0 output difference.
-- Estimated cost **$3.31 of $10**. No active benchmark resources remain.
+- Estimated image campaign cost **$3.31**; total project cost **$3.44 of $10**. No active benchmark resources remain.
 
 These results are not a production-readiness claim. TLS, authentication, rate limiting, observability, model versioning, and multi-AZ replacement remain open. See the [full report](docs/autotune-benchmark.md) and the [sanitized summary](benchmarks/results/2026-11-02-autotune-summary.json).
 
@@ -39,7 +39,7 @@ The worker and gateway now handle `SIGTERM` and `SIGINT` with a bounded shutdown
 
 ## Overload protection
 
-The gateway supports an opt-in global in-flight limit, `ADMISSION_MAX_INFLIGHT`. At the limit it returns HTTP `503` with `Retry-After: 1` and exposes accepted, rejected, and current in-flight counters on `/stats`. In a local 2-worker test, a limit of 7 kept accepted p95 at 372–376 ms across three runs at 50 offered requests/s, where the baseline p95 was 5.6–8.4 s. At 100 offered requests/s, admission kept p95 at 387 ms and returned controlled 503s for 704 of 1,000 requests; the baseline p95 was 24.4 s. This is local evidence, not an AWS or production capacity claim. See [overload protection](docs/overload-protection.md).
+The gateway supports an opt-in global in-flight limit, `ADMISSION_MAX_INFLIGHT`. At the limit it returns HTTP `503` with `Retry-After: 1` and exposes accepted, rejected, and current in-flight counters on `/stats`. In local 2-worker tests, a limit of 7 kept accepted p95 at 372–376 ms at 50 offered requests/s, where the baseline p95 was 5.6–8.4 s. On a 2-worker AWS `c6i.large` topology, admission kept accepted p95 at 339–344 ms at 50 and 100 offered requests/s; the baseline p95 was 12–29 s, and the 100 req/s baseline also produced 122–134 client timeouts. This is benchmark evidence, not a production availability claim. See [overload protection](docs/overload-protection.md).
 
 ## Architecture
 

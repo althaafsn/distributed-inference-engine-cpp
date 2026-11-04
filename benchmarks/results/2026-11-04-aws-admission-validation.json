@@ -1,0 +1,939 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "scope": "AWS multi-host admission validation. Not a production or public-deployment result.",
+  "run_id": "infer-8449738a5d8c568d",
+  "region": "us-east-1",
+  "cleanup": {
+    "instances": "terminated",
+    "volumes": "removed",
+    "security_groups": "removed"
+  },
+  "topology": {
+    "gateway": "c6i.large",
+    "workers": 2,
+    "worker_type": "c6i.large",
+    "load_generator": "c6i.xlarge",
+    "routing": "least_loaded",
+    "model": "resnet50-v2-7",
+    "data": "500-image ImageNet subset, unique, cold cache (CACHE_CAPACITY=1)",
+    "transport": "raw float32",
+    "ort_intra_threads_per_worker": 2,
+    "load_concurrency": 128,
+    "duration_seconds": 10,
+    "rates_rps": [
+      25,
+      50,
+      100
+    ],
+    "repeats_per_rate": 3,
+    "admission_limit": 7
+  },
+  "source": {
+    "base_revision": "c4d8a08b72df810ffad0dce6a993cecae22494bb",
+    "local_head": "adfdcb50389509b33f05a62c720872f77714d290",
+    "patch_sha256": "76871582356323d6ff72f28e36f84eea35e987c39ebc51d9ee5fddc3c37c1d35",
+    "source_sha256": {
+      "include/batch_processor.h": "76cb207c68f08ee4a396c0ddb4ed38970ed76acbf3a2c83df77414702f442ef2",
+      "include/engine_backend.h": "0f890be000920a046585030d77dc301525d27fcd3753ffcea0dbb51e3a4dc972",
+      "include/inference_engine.h": "66e5a4732fe75f2f83c5e6013d107f9e30d2add7c0d4a64b1cb740b8f62eac25",
+      "include/request_validation.h": "2b30474a14e854d493effd1a36699fd9019db07cedaf54f13d6d085dc4cc4291",
+      "include/shutdown_signal.h": "517af3c3d8113deed0608dba561e1be56fecb193174f02235e6ad764397aa98d",
+      "include/tensor_payload.h": "55e7190607c690c664697805d9ea39d069daa49e1c047d95bae4ed50144c1ce1",
+      "src/engine_backend.cpp": "8b4c2bbcb9c01c869e015f6655400adf3b8fc0ce29be121f9a483d247d528b4d",
+      "src/gateway.cpp": "8c5ce62184d401b1847ebbf6c8185e6a94553cd2dbfaf0285921b371e4f16c04",
+      "src/inference_engine.cpp": "52df2e37bc8807e46dba06785b1cd22d753e0a062fda687c8db189a285002ae6",
+      "src/worker_node.cpp": "baac57e9d9bd25a5fc38a04d1cf20995d63e541f765736f78765871d423b8283"
+    }
+  },
+  "cost": {
+    "instance_runtime_seconds": {
+      "gateway": 1064,
+      "worker_1": 1062,
+      "worker_2": 1059,
+      "load": 1057
+    },
+    "estimated_usd": 0.132578
+  },
+  "conditions": [
+    {
+      "label": "hold-rate25-a0-r1",
+      "offered_rate_rps": 25.0,
+      "admission_max_inflight": 0,
+      "repeat": 1,
+      "requests": 250,
+      "successes": 250,
+      "failures": 0,
+      "timeouts": 0,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 250
+      },
+      "accepted_rps": 22.575,
+      "wall_seconds": 11.074,
+      "latency_ms": {
+        "p50": 782.47,
+        "p95": 1510.737,
+        "p99": 1654.596
+      },
+      "gateway_admission": {
+        "accepted": 250,
+        "in_flight": 0,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 4.5,
+      "worker_cpu_best10s_pct": [
+        100.2,
+        100.0
+      ]
+    },
+    {
+      "label": "hold-rate25-a7-r1",
+      "offered_rate_rps": 25.0,
+      "admission_max_inflight": 7,
+      "repeat": 1,
+      "requests": 250,
+      "successes": 234,
+      "failures": 16,
+      "timeouts": 0,
+      "shed_503": 16,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 234,
+        "503": 16
+      },
+      "accepted_rps": 22.991,
+      "wall_seconds": 10.178,
+      "latency_ms": {
+        "p50": 230.751,
+        "p95": 323.785,
+        "p99": 340.288
+      },
+      "gateway_admission": {
+        "accepted": 234,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 16
+      },
+      "gateway_cpu_best10s_pct": 2.8,
+      "worker_cpu_best10s_pct": [
+        99.6,
+        98.7
+      ]
+    },
+    {
+      "label": "hold-rate25-a7-r2",
+      "offered_rate_rps": 25.0,
+      "admission_max_inflight": 7,
+      "repeat": 2,
+      "requests": 250,
+      "successes": 234,
+      "failures": 16,
+      "timeouts": 0,
+      "shed_503": 16,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 234,
+        "503": 16
+      },
+      "accepted_rps": 22.918,
+      "wall_seconds": 10.21,
+      "latency_ms": {
+        "p50": 232.783,
+        "p95": 330.886,
+        "p99": 341.881
+      },
+      "gateway_admission": {
+        "accepted": 234,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 16
+      },
+      "gateway_cpu_best10s_pct": 10.5,
+      "worker_cpu_best10s_pct": [
+        97.9,
+        98.8
+      ]
+    },
+    {
+      "label": "hold-rate25-a0-r2",
+      "offered_rate_rps": 25.0,
+      "admission_max_inflight": 0,
+      "repeat": 2,
+      "requests": 250,
+      "successes": 250,
+      "failures": 0,
+      "timeouts": 0,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 250
+      },
+      "accepted_rps": 22.549,
+      "wall_seconds": 11.087,
+      "latency_ms": {
+        "p50": 779.539,
+        "p95": 1538.788,
+        "p99": 1617.134
+      },
+      "gateway_admission": {
+        "accepted": 250,
+        "in_flight": 0,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 2.5,
+      "worker_cpu_best10s_pct": [
+        100.5,
+        100.4
+      ]
+    },
+    {
+      "label": "hold-rate25-a0-r3",
+      "offered_rate_rps": 25.0,
+      "admission_max_inflight": 0,
+      "repeat": 3,
+      "requests": 250,
+      "successes": 250,
+      "failures": 0,
+      "timeouts": 0,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 250
+      },
+      "accepted_rps": 22.588,
+      "wall_seconds": 11.068,
+      "latency_ms": {
+        "p50": 777.57,
+        "p95": 1580.96,
+        "p99": 1738.557
+      },
+      "gateway_admission": {
+        "accepted": 250,
+        "in_flight": 0,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 2.0,
+      "worker_cpu_best10s_pct": [
+        100.5,
+        100.1
+      ]
+    },
+    {
+      "label": "hold-rate25-a7-r3",
+      "offered_rate_rps": 25.0,
+      "admission_max_inflight": 7,
+      "repeat": 3,
+      "requests": 250,
+      "successes": 234,
+      "failures": 16,
+      "timeouts": 0,
+      "shed_503": 16,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 234,
+        "503": 16
+      },
+      "accepted_rps": 23.0,
+      "wall_seconds": 10.174,
+      "latency_ms": {
+        "p50": 230.776,
+        "p95": 326.749,
+        "p99": 338.744
+      },
+      "gateway_admission": {
+        "accepted": 234,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 16
+      },
+      "gateway_cpu_best10s_pct": 8.8,
+      "worker_cpu_best10s_pct": [
+        98.9,
+        97.5
+      ]
+    },
+    {
+      "label": "hold-rate50-a0-r1",
+      "offered_rate_rps": 50.0,
+      "admission_max_inflight": 0,
+      "repeat": 1,
+      "requests": 500,
+      "successes": 500,
+      "failures": 0,
+      "timeouts": 0,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 500
+      },
+      "accepted_rps": 15.616,
+      "wall_seconds": 32.018,
+      "latency_ms": {
+        "p50": 7274.055,
+        "p95": 21548.839,
+        "p99": 22113.868
+      },
+      "gateway_admission": {
+        "accepted": 500,
+        "in_flight": 0,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 2.4,
+      "worker_cpu_best10s_pct": [
+        100.5,
+        100.2
+      ]
+    },
+    {
+      "label": "hold-rate50-a7-r1",
+      "offered_rate_rps": 50.0,
+      "admission_max_inflight": 7,
+      "repeat": 1,
+      "requests": 500,
+      "successes": 236,
+      "failures": 264,
+      "timeouts": 0,
+      "shed_503": 264,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 236,
+        "503": 264
+      },
+      "accepted_rps": 23.128,
+      "wall_seconds": 10.204,
+      "latency_ms": {
+        "p50": 261.012,
+        "p95": 339.431,
+        "p99": 343.321
+      },
+      "gateway_admission": {
+        "accepted": 236,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 264
+      },
+      "gateway_cpu_best10s_pct": 1.9,
+      "worker_cpu_best10s_pct": [
+        99.9,
+        99.3
+      ]
+    },
+    {
+      "label": "hold-rate50-a7-r2",
+      "offered_rate_rps": 50.0,
+      "admission_max_inflight": 7,
+      "repeat": 2,
+      "requests": 500,
+      "successes": 237,
+      "failures": 263,
+      "timeouts": 0,
+      "shed_503": 263,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 237,
+        "503": 263
+      },
+      "accepted_rps": 23.17,
+      "wall_seconds": 10.229,
+      "latency_ms": {
+        "p50": 271.518,
+        "p95": 339.962,
+        "p99": 343.467
+      },
+      "gateway_admission": {
+        "accepted": 237,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 263
+      },
+      "gateway_cpu_best10s_pct": 4.2,
+      "worker_cpu_best10s_pct": [
+        98.5,
+        99.0
+      ]
+    },
+    {
+      "label": "hold-rate50-a0-r2",
+      "offered_rate_rps": 50.0,
+      "admission_max_inflight": 0,
+      "repeat": 2,
+      "requests": 500,
+      "successes": 500,
+      "failures": 0,
+      "timeouts": 0,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 500
+      },
+      "accepted_rps": 21.884,
+      "wall_seconds": 22.848,
+      "latency_ms": {
+        "p50": 7330.942,
+        "p95": 12431.385,
+        "p99": 14264.408
+      },
+      "gateway_admission": {
+        "accepted": 500,
+        "in_flight": 0,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 3.1,
+      "worker_cpu_best10s_pct": [
+        100.3,
+        100.4
+      ]
+    },
+    {
+      "label": "hold-rate50-a0-r3",
+      "offered_rate_rps": 50.0,
+      "admission_max_inflight": 0,
+      "repeat": 3,
+      "requests": 500,
+      "successes": 500,
+      "failures": 0,
+      "timeouts": 0,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 500
+      },
+      "accepted_rps": 22.139,
+      "wall_seconds": 22.584,
+      "latency_ms": {
+        "p50": 6985.528,
+        "p95": 12652.102,
+        "p99": 13350.261
+      },
+      "gateway_admission": {
+        "accepted": 500,
+        "in_flight": 0,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 3.1,
+      "worker_cpu_best10s_pct": [
+        100.5,
+        100.5
+      ]
+    },
+    {
+      "label": "hold-rate50-a7-r3",
+      "offered_rate_rps": 50.0,
+      "admission_max_inflight": 7,
+      "repeat": 3,
+      "requests": 500,
+      "successes": 234,
+      "failures": 266,
+      "timeouts": 0,
+      "shed_503": 266,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 234,
+        "503": 266
+      },
+      "accepted_rps": 22.947,
+      "wall_seconds": 10.197,
+      "latency_ms": {
+        "p50": 262.238,
+        "p95": 339.476,
+        "p99": 345.642
+      },
+      "gateway_admission": {
+        "accepted": 234,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 266
+      },
+      "gateway_cpu_best10s_pct": 1.4,
+      "worker_cpu_best10s_pct": [
+        98.3,
+        96.4
+      ]
+    },
+    {
+      "label": "hold-rate100-a0-r1",
+      "offered_rate_rps": 100.0,
+      "admission_max_inflight": 0,
+      "repeat": 1,
+      "requests": 1000,
+      "successes": 878,
+      "failures": 122,
+      "timeouts": 122,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 878,
+        "None": 122
+      },
+      "accepted_rps": 21.564,
+      "wall_seconds": 40.717,
+      "latency_ms": {
+        "p50": 15657.874,
+        "p95": 29208.831,
+        "p99": 30662.623
+      },
+      "gateway_admission": {
+        "accepted": 1000,
+        "in_flight": 82,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 5.5,
+      "worker_cpu_best10s_pct": [
+        100.6,
+        100.6
+      ]
+    },
+    {
+      "label": "hold-rate100-a7-r1",
+      "offered_rate_rps": 100.0,
+      "admission_max_inflight": 7,
+      "repeat": 1,
+      "requests": 1000,
+      "successes": 235,
+      "failures": 765,
+      "timeouts": 0,
+      "shed_503": 765,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 235,
+        "503": 765
+      },
+      "accepted_rps": 22.966,
+      "wall_seconds": 10.233,
+      "latency_ms": {
+        "p50": 308.664,
+        "p95": 343.504,
+        "p99": 360.395
+      },
+      "gateway_admission": {
+        "accepted": 235,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 765
+      },
+      "gateway_cpu_best10s_pct": 14.2,
+      "worker_cpu_best10s_pct": [
+        98.7,
+        98.9
+      ]
+    },
+    {
+      "label": "hold-rate100-a7-r2",
+      "offered_rate_rps": 100.0,
+      "admission_max_inflight": 7,
+      "repeat": 2,
+      "requests": 1000,
+      "successes": 235,
+      "failures": 765,
+      "timeouts": 0,
+      "shed_503": 765,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 235,
+        "503": 765
+      },
+      "accepted_rps": 23.025,
+      "wall_seconds": 10.207,
+      "latency_ms": {
+        "p50": 324.312,
+        "p95": 343.706,
+        "p99": 357.04
+      },
+      "gateway_admission": {
+        "accepted": 235,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 765
+      },
+      "gateway_cpu_best10s_pct": 1.4,
+      "worker_cpu_best10s_pct": [
+        97.6,
+        98.7
+      ]
+    },
+    {
+      "label": "hold-rate100-a0-r2",
+      "offered_rate_rps": 100.0,
+      "admission_max_inflight": 0,
+      "repeat": 2,
+      "requests": 1000,
+      "successes": 869,
+      "failures": 131,
+      "timeouts": 131,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 869,
+        "None": 131
+      },
+      "accepted_rps": 21.607,
+      "wall_seconds": 40.219,
+      "latency_ms": {
+        "p50": 15639.127,
+        "p95": 28829.181,
+        "p99": 29595.265
+      },
+      "gateway_admission": {
+        "accepted": 1000,
+        "in_flight": 74,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 6.4,
+      "worker_cpu_best10s_pct": [
+        100.5,
+        100.5
+      ]
+    },
+    {
+      "label": "hold-rate100-a0-r3",
+      "offered_rate_rps": 100.0,
+      "admission_max_inflight": 0,
+      "repeat": 3,
+      "requests": 1000,
+      "successes": 866,
+      "failures": 134,
+      "timeouts": 134,
+      "shed_503": 0,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 866,
+        "None": 134
+      },
+      "accepted_rps": 21.598,
+      "wall_seconds": 40.097,
+      "latency_ms": {
+        "p50": 15686.442,
+        "p95": 29076.63,
+        "p99": 29783.909
+      },
+      "gateway_admission": {
+        "accepted": 1000,
+        "in_flight": 72,
+        "max_in_flight": 0,
+        "rejected": 0
+      },
+      "gateway_cpu_best10s_pct": 3.4,
+      "worker_cpu_best10s_pct": [
+        100.2,
+        100.4
+      ]
+    },
+    {
+      "label": "hold-rate100-a7-r3",
+      "offered_rate_rps": 100.0,
+      "admission_max_inflight": 7,
+      "repeat": 3,
+      "requests": 1000,
+      "successes": 235,
+      "failures": 765,
+      "timeouts": 0,
+      "shed_503": 765,
+      "other_errors": 0,
+      "status_counts": {
+        "200": 235,
+        "503": 765
+      },
+      "accepted_rps": 23.046,
+      "wall_seconds": 10.197,
+      "latency_ms": {
+        "p50": 327.131,
+        "p95": 343.231,
+        "p99": 354.948
+      },
+      "gateway_admission": {
+        "accepted": 235,
+        "in_flight": 0,
+        "max_in_flight": 7,
+        "rejected": 765
+      },
+      "gateway_cpu_best10s_pct": 2.2,
+      "worker_cpu_best10s_pct": [
+        98.3,
+        98.0
+      ]
+    }
+  ],
+  "aggregates": {
+    "25.0": {
+      "baseline": {
+        "runs": 3,
+        "successes": {
+          "median": 250,
+          "min": 250,
+          "max": 250
+        },
+        "shed_503": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "timeouts": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "accepted_rps": {
+          "median": 22.575,
+          "min": 22.549,
+          "max": 22.588
+        },
+        "wall_seconds": {
+          "median": 11.074,
+          "min": 11.068,
+          "max": 11.087
+        },
+        "p95_ms": {
+          "median": 1538.788,
+          "min": 1510.737,
+          "max": 1580.96
+        },
+        "p99_ms": {
+          "median": 1654.596,
+          "min": 1617.134,
+          "max": 1738.557
+        }
+      },
+      "admission_7": {
+        "runs": 3,
+        "successes": {
+          "median": 234,
+          "min": 234,
+          "max": 234
+        },
+        "shed_503": {
+          "median": 16,
+          "min": 16,
+          "max": 16
+        },
+        "timeouts": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "accepted_rps": {
+          "median": 22.991,
+          "min": 22.918,
+          "max": 23.0
+        },
+        "wall_seconds": {
+          "median": 10.178,
+          "min": 10.174,
+          "max": 10.21
+        },
+        "p95_ms": {
+          "median": 326.749,
+          "min": 323.785,
+          "max": 330.886
+        },
+        "p99_ms": {
+          "median": 340.288,
+          "min": 338.744,
+          "max": 341.881
+        }
+      }
+    },
+    "50.0": {
+      "baseline": {
+        "runs": 3,
+        "successes": {
+          "median": 500,
+          "min": 500,
+          "max": 500
+        },
+        "shed_503": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "timeouts": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "accepted_rps": {
+          "median": 21.884,
+          "min": 15.616,
+          "max": 22.139
+        },
+        "wall_seconds": {
+          "median": 22.848,
+          "min": 22.584,
+          "max": 32.018
+        },
+        "p95_ms": {
+          "median": 12652.102,
+          "min": 12431.385,
+          "max": 21548.839
+        },
+        "p99_ms": {
+          "median": 14264.408,
+          "min": 13350.261,
+          "max": 22113.868
+        }
+      },
+      "admission_7": {
+        "runs": 3,
+        "successes": {
+          "median": 236,
+          "min": 234,
+          "max": 237
+        },
+        "shed_503": {
+          "median": 264,
+          "min": 263,
+          "max": 266
+        },
+        "timeouts": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "accepted_rps": {
+          "median": 23.128,
+          "min": 22.947,
+          "max": 23.17
+        },
+        "wall_seconds": {
+          "median": 10.204,
+          "min": 10.197,
+          "max": 10.229
+        },
+        "p95_ms": {
+          "median": 339.476,
+          "min": 339.431,
+          "max": 339.962
+        },
+        "p99_ms": {
+          "median": 343.467,
+          "min": 343.321,
+          "max": 345.642
+        }
+      }
+    },
+    "100.0": {
+      "baseline": {
+        "runs": 3,
+        "successes": {
+          "median": 869,
+          "min": 866,
+          "max": 878
+        },
+        "shed_503": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "timeouts": {
+          "median": 131,
+          "min": 122,
+          "max": 134
+        },
+        "accepted_rps": {
+          "median": 21.598,
+          "min": 21.564,
+          "max": 21.607
+        },
+        "wall_seconds": {
+          "median": 40.219,
+          "min": 40.097,
+          "max": 40.717
+        },
+        "p95_ms": {
+          "median": 29076.63,
+          "min": 28829.181,
+          "max": 29208.831
+        },
+        "p99_ms": {
+          "median": 29783.909,
+          "min": 29595.265,
+          "max": 30662.623
+        }
+      },
+      "admission_7": {
+        "runs": 3,
+        "successes": {
+          "median": 235,
+          "min": 235,
+          "max": 235
+        },
+        "shed_503": {
+          "median": 765,
+          "min": 765,
+          "max": 765
+        },
+        "timeouts": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "accepted_rps": {
+          "median": 23.025,
+          "min": 22.966,
+          "max": 23.046
+        },
+        "wall_seconds": {
+          "median": 10.207,
+          "min": 10.197,
+          "max": 10.233
+        },
+        "p95_ms": {
+          "median": 343.504,
+          "min": 343.231,
+          "max": 343.706
+        },
+        "p99_ms": {
+          "median": 357.04,
+          "min": 354.948,
+          "max": 360.395
+        }
+      }
+    }
+  },
+  "notes": [
+    "Baseline at 100 req/s produced client timeouts, not server 5xx responses. The gateway still accepted all 1,000 requests and had 72-82 in flight when metrics were captured.",
+    "Admission at 25/50/100 req/s produced only controlled 503 responses and no client timeouts.",
+    "Worker CPU is the 10-sample rolling mean of vmstat us+sy during the busiest window; 100% means both vCPUs were busy.",
+    "The load generator does not retry after 503.",
+    "The client, gateway, and workers are on separate EC2 instances; the load generator is in the same VPC.",
+    "Condition order in the artifact matches execution order: 25, 50, then 100 req/s, with baseline/admission alternating within each rate."
+  ],
+  "execution_order": [
+    "hold-rate25-a0-r1",
+    "hold-rate25-a7-r1",
+    "hold-rate25-a7-r2",
+    "hold-rate25-a0-r2",
+    "hold-rate25-a0-r3",
+    "hold-rate25-a7-r3",
+    "hold-rate50-a0-r1",
+    "hold-rate50-a7-r1",
+    "hold-rate50-a7-r2",
+    "hold-rate50-a0-r2",
+    "hold-rate50-a0-r3",
+    "hold-rate50-a7-r3",
+    "hold-rate100-a0-r1",
+    "hold-rate100-a7-r1",
+    "hold-rate100-a7-r2",
+    "hold-rate100-a0-r2",
+    "hold-rate100-a0-r3",
+    "hold-rate100-a7-r3"
+  ],
+  "confounds": {
+    "baseline_50_retry": {
+      "label": "hold-rate50-a0-r1",
+      "gateway_retry_events": 5,
+      "worker_completions": 505,
+      "client_requests": 500,
+      "note": "The high end of the baseline 50 range includes five gateway-to-worker retries. The other two baseline runs were 12.4-12.7 s p95 and 22.6-22.8 s wall."
+    }
+  }
+}

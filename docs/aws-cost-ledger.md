@@ -63,10 +63,22 @@ The multi-host campaign ran 34 tagged topologies. It tested 1, 2, 4, and 8 worke
 | `infer-ff084d65cba740e2` | 1-worker cold pilot, 200 requests | 325 | log | 2 | 1 | $0.032410 |
 | **Total** |  |  |  |  |  | **$3.267337** |
 
-Grand total: **$0.044703 + $3.267337 = $3.312040**. The remaining budget is about **$6.69**.
+## Admission validation (2026-11-04)
+
+One `c6i.large` gateway, two `c6i.large` workers, and one `c6i.xlarge` load generator ran for about 17 minutes 40 seconds. Runtime is the interval from EC2 `LaunchTime` to the recorded termination at `2026-11-04 06:08:26 GMT`. The controller verified cleanup; `describe-volumes` and `describe-security-groups` returned not found for every recorded volume and group.
+
+| Resource | Type | Seconds | Compute | IPv4 | 12 GB gp3 | Estimated subtotal |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Gateway | c6i.large | 1064 | $0.025122 | $0.001478 | $0.000394 | $0.026994 |
+| Worker 1 | c6i.large | 1062 | $0.025075 | $0.001475 | $0.000393 | $0.026943 |
+| Worker 2 | c6i.large | 1059 | $0.025004 | $0.001471 | $0.000392 | $0.026867 |
+| Load generator | c6i.xlarge | 1057 | $0.049914 | $0.001468 | $0.000391 | $0.051773 |
+| **Total** | | **4,242** | **$0.125115** | **$0.005892** | **$0.001571** | **$0.132578** |
+
+Grand total: **$0.044703 + $3.267337 + $0.132578 = $3.444618**. The remaining budget is about **$6.56**.
 
 For the multi-host table, `exact` means the interval from EC2 `LaunchTime` to the recorded termination time. `log` means the console-log end time minus the recorded run start time, because AWS had already aged the instance records out of `describe-instances`. The `log` method includes provisioning and cleanup, so it is conservative. The two failover timeout rows include the full wait time before cleanup.
 
 Method for the 13 single-host rows: runtime is the interval from EC2 `LaunchTime` to the recorded user-initiated termination time. Compute = seconds / 3600 × $0.085; IPv4 = seconds / 3600 × $0.005; storage = 12 × $0.08 × seconds / (30 × 24 × 3600). Each instance ran more than the minimum one-minute billing period. Storage and IP lifetimes are approximated by instance runtime; actual provision and deletion can differ. Data transfer, tax, credits, discounts and billing adjustments are not included. AWS billing may arrive later; consult the bill for actual charges.
 
-The controller verified termination after each run. Direct AWS checks confirmed that the recorded instance was terminated and its recorded volume and security group did not exist after each attempt. The first run was `infer-85e0e6c87756c37a`; the second was `infer-b3ee717ce6dc11fe`; the third was `infer-8bb17685b18e63a4`; the fourth was `infer-d4522a282d0dcc42`; the fifth was `infer-1f39a2ac8519f743`; the sixth was `infer-0601374edef6f33d`; the seventh was `infer-ca8db4050033ae08`; the eighth was `infer-ff9ac124eb8e79ea`; the ninth was `infer-2063d463870454ba`; the tenth was `infer-f6dfdf8dd788978c`; the eleventh was `infer-d1070c813d774208`; the twelfth was `infer-a5f5bc6de001b9ae`; the thirteenth was `infer-f8f48cbffd6ffd98`. No additional AWS resources were launched for local tests. Cost Explorer reported $0.000000 for 2026-11-01 through 2026-11-03 at the time of writing; billing data can be delayed, so the ledger estimates above remain the conservative record.
+The controller verified termination after each run. Direct AWS checks confirmed that the recorded instance was terminated and its recorded volume and security group did not exist after each attempt. The first run was `infer-85e0e6c87756c37a`; the second was `infer-b3ee717ce6dc11fe`; the third was `infer-8bb17685b18e63a4`; the fourth was `infer-d4522a282d0dcc42`; the fifth was `infer-1f39a2ac8519f743`; the sixth was `infer-0601374edef6f33d`; the seventh was `infer-ca8db4050033ae08`; the eighth was `infer-ff9ac124eb8e79ea`; the ninth was `infer-2063d463870454ba`; the tenth was `infer-f6dfdf8dd788978c`; the eleventh was `infer-d1070c813d774208`; the twelfth was `infer-a5f5bc6de001b9ae`; the thirteenth was `infer-f8f48cbffd6ffd98`. No additional AWS resources were launched for the local tests. The separate admission validation above ran on 2026-11-04. Cost Explorer reported $0.000000 for 2026-11-01 through 2026-11-03 at the time of writing; billing data can be delayed, so the ledger estimates above remain the conservative record.
