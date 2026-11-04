@@ -39,7 +39,7 @@ The worker and gateway now handle `SIGTERM` and `SIGINT` with a bounded shutdown
 
 ## Overload protection
 
-The gateway supports an opt-in global in-flight limit, `ADMISSION_MAX_INFLIGHT`. At the limit it returns HTTP `503` with `Retry-After: 1` and exposes accepted, rejected, and current in-flight counters on `/stats`. In local 2-worker tests, a limit of 7 kept accepted p95 at 372–376 ms at 50 offered requests/s, where the baseline p95 was 5.6–8.4 s. On a 2-worker AWS `c6i.large` topology, admission kept accepted p95 at 339–344 ms at 50 and 100 offered requests/s; the baseline p95 was 12–29 s, and the 100 req/s baseline also produced 122–134 client timeouts. This is benchmark evidence, not a production availability claim. See [overload protection](docs/overload-protection.md).
+The gateway supports an opt-in global in-flight limit, `ADMISSION_MAX_INFLIGHT`. At the limit it returns HTTP `503` with `Retry-After: 1` and exposes accepted, rejected, and current in-flight counters on `/stats`. In local 2-worker tests, a limit of 7 kept accepted p95 at 372–376 ms at 50 offered requests/s, where the baseline p95 was 5.6–8.4 s. On a 2-worker AWS `c6i.large` topology, admission kept accepted p95 at 339–344 ms at 50 and 100 offered requests/s; the baseline p95 was 12–29 s, and the 100 req/s baseline also produced 122–134 client timeouts. The gateway also exposes Prometheus metrics at `/metrics` and supports adaptive admission (`ADMISSION_ADAPTIVE=1`); in a local 25/50/100 req/s test, adaptive converged to 7–8 and avoided unnecessary shedding at 25 req/s. This is benchmark evidence, not a production availability claim. See [overload protection](docs/overload-protection.md).
 
 ## Architecture
 

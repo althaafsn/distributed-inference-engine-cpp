@@ -113,7 +113,7 @@ At 50 and 100 requests/s, the baseline accepted every request but took 15–35 s
 - At 2× the operating point, the limit of 7 sheds 42.8–48.0% of requests and keeps accepted p95 at 372–376 ms.
 - At 4× the operating point, it sheds 70.4% and keeps accepted p95 at 387 ms. The baseline p95 at the same offered load is 24.4 seconds.
 - The shed requests are explicit `503` responses with `Retry-After`, not silent timeouts.
-- A real client must honor `Retry-After` and retry with jitter. The load generator does not retry, so the 503 fraction is a property of the offered concurrency, not a client policy.
+- A real client must honor `Retry-After` and retry with jitter. The static experiment did not retry, so the 503 fraction is a property of the offered concurrency, not a client policy. The optional retry mode is measured separately below.
 - At 25 requests/s, the limit is close to the natural in-flight count, so short bursts can still be shed. That run is not evidence of a latency improvement.
 
 ## AWS multi-host validation
@@ -136,6 +136,68 @@ Topology: one `c6i.large` gateway, two `c6i.large` workers, and one `c6i.xlarge`
 
 Sanitized artifact: `benchmarks/results/2026-11-04-aws-admission-validation.json`. Raw run: `benchmark-aws/runs/infer-8449738a5d8c568d` (ignored, local).
 
+## Adaptive admission and metrics
+
+The gateway now exposes Prometheus text metrics at `/metrics` and can adapt the in-flight limit from observed accepted latency.
+
+### Metrics
+
+`/metrics` is never rejected, even when admission is full. It includes:
+
+- `gateway_requests_total{endpoint,status}` and a per-endpoint latency histogram.
+- `gateway_admission_in_flight`, `gateway_admission_limit`, `gateway_admission_configured_max`, `gateway_admission_min`, and `gateway_admission_adaptive`.
+- `gateway_admission_target_p95_ms`, `gateway_admission_observed_p95_ms`, and `gateway_admission_observed_samples`.
+- `gateway_admission_accepted_total`, `gateway_admission_rejected_total`, and `gateway_admission_limit_changes_total`.
+- `gateway_worker_in_flight{worker}` and `gateway_worker_circuit_open{worker}`.
+
+### Policy
+
+Enable adaptive mode with:
+
+```sh
+ADMISSION_ADAPTIVE=1
+ADMISSION_MAX_INFLIGHT=12
+ADMISSION_MIN_INFLIGHT=2
+ADMISSION_TARGET_P95_MS=400
+ADMISSION_INTERVAL_MS=500
+```
+
+- The limit starts at `ADMISSION_MAX_INFLIGHT`.
+- Once per interval, one request elects itself to update the limit from the last 256 successful requests.
+- Fewer than 20 samples: hold.
+- p95 above 110% of target: decrease by 20%.
+- p95 below 75% of target: increase by 1.
+- Otherwise hold. This deadband reduces oscillation around the target.
+- The latency window is cleared after a change so stale samples do not dominate the next decision.
+- Static mode is unchanged; `ADMISSION_ADAPTIVE=0` keeps the previous behavior.
+
+### Local experiment
+
+Two local workers, ResNet50, 500 unique images, cache 1, 10-second runs, 128 connections. Static 7 was compared with adaptive max 12, min 2, target 400 ms, interval 500 ms.
+
+| Offered load | Static 7 | Adaptive | Adaptive final limit |
+| ---: | --- | --- | ---: |
+| 25 req/s | 246 / 250 accepted; 4 controlled 503s; p95 291 ms | 250 / 250 accepted; 0 503s; p95 202 ms | 12 |
+| 50 req/s | 283 / 500 median accepted (245–305); 217 503s (195–255); p95 387 ms (382–388) | 309 / 500 median accepted (291–315); 191 503s (185–209); p95 456 ms (438–494) | 7–8 |
+| 100 req/s | 214 / 1,000 accepted; 786 503s; p95 394 ms | 315 / 1,000 accepted; 685 503s; p95 494 ms | 7 |
+
+At 50 and 100 requests/s, the adaptive p95 includes the convergence ramp from the initial limit of 12. The final observed p95 was 354–419 ms at 50 and 391 ms at 100, close to the 400 ms target. Static 7 was already manually calibrated and has the better whole-run p95 at 50. Adaptive removes the manual tuning and uses the latency budget to accept more requests, especially at 100.
+
+At 25 requests/s, static 7 was too conservative: it rejected 4 requests, while adaptive stayed at the ceiling and accepted all 250 with lower p95.
+
+### Retry-aware client
+
+At 100 requests/s with `--retry-attempts 3`, `Retry-After` and exponential backoff plus jitter:
+
+| Admission | Final successes | Attempts | Retried requests | Retry successes | Exhausted | p95 | Wall |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Static 7 | 394 / 1,000 | 3,366 | 877 | 271 | 606 | 3,392 ms | 13.3 s |
+| Adaptive | 387 / 1,000 | 3,365 | 865 | 252 | 613 | 3,457 ms | 13.3 s |
+
+Retry mode raises final goodput from 214–315 to about 390 requests, but p95 rises to about 3.4 seconds because the metric includes the wait between attempts. It is a client-side goodput/latency tradeoff, not a free improvement. The adaptive and static retry results are similar; the retry policy dominates under this load.
+
+Sanitized artifact: `benchmarks/results/2026-11-04-adaptive-admission.json`.
+
 ## Limits
 
 - Local 16-core host and one AWS topology: 1 `c6i.large` gateway, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator.
@@ -146,6 +208,9 @@ Sanitized artifact: `benchmarks/results/2026-11-04-aws-admission-validation.json
 - Local runs share one host CPU. AWS separates the load, gateway, and workers.
 - The AWS load generator uses a 30-second client timeout; a real client may use a different timeout.
 - The admission limit of 7 was carried from the local 2-worker test and was not tuned on AWS.
+- The adaptive and retry experiment is local only; no AWS adaptive or retry run was performed.
+- Adaptive policy constants (20 samples, 20% decrease, +1 increase, 110%/75% deadband) were chosen from first principles and not tuned across topologies.
+- Retry p95 includes the wait between attempts; it is not comparable to first-attempt latency.
 - The admission limit is static and manually selected. A production control plane would derive it from model, worker count, and SLO.
 - No TLS, authentication, per-user quota, metrics export, or public deployment.
 - Raw local runs remain under `/tmp/opencode/final-*`; the AWS raw run is under `benchmark-aws/runs/infer-8449738a5d8c568d`. These are ignored and can be lost. The sanitized JSON records the derived values and source hashes.

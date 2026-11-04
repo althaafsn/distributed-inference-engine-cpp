@@ -1,6 +1,6 @@
 # Investigation record
 
-Status: **complete for cycles 1–9.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
+Status: **complete for cycles 1–10.** The continuous cycle ledger is [EXPERIMENTS.md](EXPERIMENTS.md); the current candidate queue is exhausted within the authorization and budget scope. Cycle 7 closed the safe-operation gaps found after the image benchmark. Cycle 9 validated admission control on a separate multi-host AWS topology. Cycle 10 added adaptive admission, Prometheus metrics, and a retry-aware client. Independent verification of the admission change is recorded in the PR review; the AWS run is a bounded benchmark, not a production deployment.
 
 ## Context and scope
 
@@ -120,6 +120,15 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 - At 100 req/s: baseline p95 28,829–29,209 ms and 122–134 client timeouts; admission 7 p95 343–344 ms with 765 controlled 503s (76.5%) and no timeouts.
 - Both workers reached about 100% of their 2 vCPUs; gateway CPU stayed below about 15%. Admission bounds the queue, not capacity. Cost $0.1326; cleanup verified.
 - See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-aws-admission-validation.json`.
+
+## Adaptive admission and metrics (cycle 10)
+
+- Added a Prometheus `/metrics` endpoint, an adaptive admission controller, and a retry-aware load client. Static mode remains the default.
+- At 25 req/s: static 7 accepted 246/250 with 4 controlled 503s and p95 290.7 ms; adaptive accepted 250/250 with p95 201.8 ms and stayed at the ceiling of 12.
+- At 50 req/s: static 7 accepted 283/500 median with p95 387.2 ms; adaptive accepted 309/500 median with p95 456.1 ms and final limit 7–8. Adaptive final observed p95 was 354–419 ms; the whole-run p95 includes the convergence ramp.
+- At 100 req/s: static 7 accepted 214/1,000 with p95 393.8 ms; adaptive accepted 315/1,000 with p95 493.7 ms and final limit 7; final observed p95 was 391 ms.
+- Retry at 100 req/s raised final successes from 214–315 to about 390, but p95 rose to about 3.4 s because it includes the wait between attempts.
+- Adaptive removes manual tuning and avoids unnecessary shedding at low load; it is not a free win over a well-tuned static limit. Cost $0, local only. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-adaptive-admission.json`.
 
 ## Portfolio and repository handoff
 

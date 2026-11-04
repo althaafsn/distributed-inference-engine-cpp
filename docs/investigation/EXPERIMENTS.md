@@ -181,6 +181,24 @@ This is the resumable record for [CONTINUOUS-OPTIMIZATION.md](CONTINUOUS-OPTIMIZ
 | Cost | $0.1326 for 4 instances over 17 minutes 40 seconds. |
 | Limits | One topology and region; 3 repeats per rate; static limit 7 carried from the local test; 30 s client timeout; no retry client; no multi-AZ, autoscaling, TLS/auth, or production claim. |
 
+## Cycle 10 — adaptive admission, metrics, and retry (accepted for the tested local scope)
+
+| Field | Record |
+| --- | --- |
+| Hypothesis | A control loop can replace the manually tuned admission limit while keeping accepted latency near a target. Prometheus metrics and a retry-aware client make the tradeoff observable. |
+| Baseline | Cycle-9 source at `3c52369`; static admission only, `/stats` only, no client retries. |
+| Change | Add `include/gateway_metrics.h` and `/metrics`; add `include/adaptive_admission.h` with a bounded-window AIMD policy; add `ADMISSION_ADAPTIVE`, `ADMISSION_MIN_INFLIGHT`, `ADMISSION_TARGET_P95_MS`, and `ADMISSION_INTERVAL_MS`; add retry/backoff to the load generator; fetch `/stats` and `/metrics` after each local run. |
+| Workload | Local AMD Ryzen 7 5800H, 16 logical CPUs; 2 workers, 2 ORT threads each; ResNet50-v2-7; 500 unique images; cache 1; binary transport; 25/50/100 requests/s; 10 s; 128 connections; 3 repeats at 50, 1 at 25 and 100. Static 7 vs adaptive max 12, min 2, target 400 ms, interval 500 ms. Retry: up to 3 retries, 100 ms base, 1 s cap, 20% jitter at 100 req/s. |
+| Verification | 90 tests with real binaries and `aiohttp`; 15 optional skips without `aiohttp`/`BENCH_*`; CTest 5/5; focused metrics, retry, adaptive-policy, admission, and source-delivery tests passed. `/metrics` remained available while admission was full. |
+| Results at 25 req/s | Static 7: 246/250 accepted, 4 controlled 503s, p95 290.7 ms. Adaptive: 250/250 accepted, 0 503s, p95 201.8 ms, final limit 12. |
+| Results at 50 req/s | Static 7: 283/500 median accepted (245–305), 217 controlled 503s (195–255), p95 387.2 ms (382.4–387.5). Adaptive: 309/500 median accepted (291–315), 191 controlled 503s (185–209), p95 456.1 ms (437.7–494.1), final limit 7–8. Adaptive final observed p95 354–419 ms. |
+| Results at 100 req/s | Static 7: 214/1,000 accepted, 786 controlled 503s, p95 393.8 ms. Adaptive: 315/1,000 accepted, 685 controlled 503s, p95 493.7 ms, final limit 7; final observed p95 391 ms. |
+| Retry at 100 req/s | Static 7: 394/1,000 final successes, 3,366 attempts, 877 retried, 271 retry successes, p95 3,391.6 ms. Adaptive: 387/1,000, 3,365 attempts, 865 retried, 252 retry successes, p95 3,457.4 ms. |
+| Decision | Accepted for the tested local scope. Adaptive removes manual tuning and avoids unnecessary shedding at 25 req/s; at 100 req/s it uses the latency budget to accept more requests. Static 7 still has better whole-run p95 at 50. Retry mode raises final goodput but p95 includes retry waits, so it is a tradeoff rather than a free improvement. |
+| Artifacts | `benchmarks/results/2026-11-04-adaptive-admission.json`, `docs/overload-protection.md`, `include/gateway_metrics.h`, `include/adaptive_admission.h`, `tests/test_gateway_metrics.py`, `tests/test_loadgen_retry.py`, `tests/test_adaptive_admission.cpp`. |
+| Cost | Local only; $0. |
+| Limits | One local topology; one policy parameter set; adaptive p95 includes the convergence ramp; retry p95 includes backoff wait; no AWS adaptive or retry run; no external Prometheus/Grafana or production claim. |
+
 ## Stop condition and future work
 
 Cycle 6 closed the multi-host capacity item for the tested workload; cycle 9 validated admission control on a separate multi-host topology. The remaining constraints are production concerns, not single-variable performance candidates: TLS and authentication, rate limiting and backpressure, graceful shutdown, metrics export, model versioning, multi-AZ replacement, and a long-duration soak.
