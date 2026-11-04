@@ -39,7 +39,7 @@ The worker and gateway now handle `SIGTERM` and `SIGINT` with a bounded shutdown
 
 ## Overload protection
 
-The gateway supports an opt-in global in-flight limit, `ADMISSION_MAX_INFLIGHT`. At the limit it returns HTTP `503` with `Retry-After: 1` and exposes accepted, rejected, and current in-flight counters on `/stats`. In a local 2-worker test at 50 offered requests/s, a limit of 7 kept accepted p95 at 373–429 ms and p99 at 383–450 ms across three runs while shedding 48–57% as controlled 503s. The baseline accepted every request but p95 rose to 6.2–9.0 s. This is local evidence, not an AWS or production capacity claim. See [overload protection](docs/overload-protection.md).
+The gateway supports an opt-in global in-flight limit, `ADMISSION_MAX_INFLIGHT`. At the limit it returns HTTP `503` with `Retry-After: 1` and exposes accepted, rejected, and current in-flight counters on `/stats`. In a local 2-worker test, a limit of 7 kept accepted p95 at 372–376 ms across three runs at 50 offered requests/s, where the baseline p95 was 5.6–8.4 s. At 100 offered requests/s, admission kept p95 at 387 ms and returned controlled 503s for 704 of 1,000 requests; the baseline p95 was 24.4 s. This is local evidence, not an AWS or production capacity claim. See [overload protection](docs/overload-protection.md).
 
 ## Architecture
 

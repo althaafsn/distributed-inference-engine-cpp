@@ -153,15 +153,16 @@ This is the resumable record for [CONTINUOUS-OPTIMIZATION.md](CONTINUOUS-OPTIMIZ
 | --- | --- |
 | Hypothesis | Under sustained offered load above capacity, an unbounded gateway queue turns excess load into multi-second accepted latency. A global in-flight limit should protect accepted requests and reject excess work with a retryable 503. |
 | Baseline | Cycle-7 source at `b0bf9b3`; gateway had per-worker in-flight routing but no global admission limit. |
-| Change | Add `ADMISSION_MAX_INFLIGHT` (default 0, disabled); atomically admit or reject at the gateway; return HTTP 503 with `Retry-After: 1`; expose accepted, rejected, and in-flight counters in `/stats`; extend the local runner to start multiple workers and pass the admission limit. |
-| Workload | Local AMD Ryzen 7 5800H, 16 logical CPUs; 2 workers, 2 ORT threads each; ResNet50-v2-7; 500 unique images; cache capacity 1; binary transport; open-loop 25 and 50 requests/s for 10 s; 128 connection limit. |
-| Verification | Admission unit/integration test: 1 in-flight accepted, second concurrent request gets 503 with `Retry-After`, rejected request never reaches the worker, stats report accepted/rejected/in-flight. Full Python suite 71 passed / 7 intended skips; CTest 4/4. |
-| Results at 25 req/s | Baseline: 250/250 accepted, p95 279.6 ms. Admission 7: 250/250 accepted, p95 156.0 ms. |
-| Results at 50 req/s | Baseline: 500/500 accepted but wall 16–19 s and p95 6.2–9.0 s. Admission 7, three runs: 264/500, 214/500, and 258/500 accepted; 236, 286, and 242 controlled 503s; accepted p95 428.9/427.5/373.4 ms; p99 449.7/450.1/383.3 ms; accepted throughput 25.7/20.8/25.1 req/s. |
-| Decision | Accepted for the tested local scope. The limit protects accepted latency at 2× the 25 req/s operating point; it does not increase capacity. Controlled 503s are reported separately from uncontrolled 5xx; the load generator does not retry. |
-| Artifacts | `docs/overload-protection.md`, `benchmarks/results/2026-11-04-overload-protection.json`, `tests/test_admission_control.py`. |
+| Change | Add `ADMISSION_MAX_INFLIGHT` (default 0, disabled); use a compare-and-swap admission counter; ignore negative or out-of-range configuration with a warning; return HTTP 503 with `Retry-After: 1`; expose admitted, rejected, and in-flight counters in `/stats`; extend the local runner to start multiple workers, pass the admission limit, record binary hashes, and use one rate-mode run. |
+| Workload | Local AMD Ryzen 7 5800H, 16 logical CPUs; 2 workers, 2 ORT threads each; ResNet50-v2-7; 500 unique images; cache capacity 1; binary transport; open-loop 25, 50, and 100 requests/s for 10 s; 128 connection limit. |
+| Verification | Admission tests cover `/infer`, `/infer_tensor`, negative configuration, and release after a malformed request; the rejected request never reaches the worker and the counters remain consistent. Full Python suite 74 tests (0 skips with aiohttp; 7 optional skips without); CTest 4/4. |
+| Results at 25 req/s | Baseline: 250/250 accepted, p95 605.5 ms. Admission 7: 240/250 accepted, 10 controlled 503s, p95 326.2 ms. The limit is close to the natural in-flight count here; the comparison is dominated by run-to-run variance. |
+| Results at 50 req/s | Baseline, three runs: 500/500 accepted; wall 18.4/17.3/15.4 s; p95 8,357/7,264/5,560 ms. Admission 7, three runs: 286/260/272 accepted; 214/240/228 controlled 503s; p95 376.3/376.3/372.0 ms; p99 388.8/399.0/386.8 ms; accepted throughput 28.1/25.6/26.8 req/s. |
+| Results at 100 req/s | Baseline: 1,000/1,000 accepted; wall 35.5 s; p95 24,371 ms. Admission 7: 296/1,000 accepted; 704 controlled 503s; p95 387.3 ms; p99 402.5 ms. |
+| Decision | Accepted for the tested local scope. The limit protects accepted latency at 2× and 4× the operating point; it does not increase capacity. Controlled 503s are reported separately from uncontrolled 5xx; the load generator does not retry. |
+| Artifacts | `docs/overload-protection.md`, `benchmarks/results/2026-11-04-overload-protection.json` (contains gateway and worker SHA-256), `tests/test_admission_control.py`. |
 | Cost | Local only; $0. |
-| Limits | Static limit; local hardware; two workers; one 10-s run per condition except three admission repeats; no client backoff; no TLS/auth/per-user quotas; no AWS or production claim. |
+| Limits | Static limit; local hardware; two workers; three 10-s runs at 50 req/s and one each at 25 and 100; client shares CPU; worker CPU not collected; no gateway `/health`; no client backoff; no TLS/auth/per-user quotas; no AWS or production claim. |
 
 ## Stop condition and future work
 

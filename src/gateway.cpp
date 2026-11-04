@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <string>
 #include <httplib.h>
 #include <nlohmann/json.hpp>
 
@@ -123,12 +124,24 @@ public:
         }
         if (const char* value = std::getenv("ADMISSION_MAX_INFLIGHT")) {
             try {
-                const unsigned long long requested = std::stoull(value);
-                if (requested > 0) {
+                size_t consumed = 0;
+                const long long requested = std::stoll(value, &consumed);
+                if (consumed != std::strlen(value)) {
+                    std::cerr << "Ignoring ADMISSION_MAX_INFLIGHT with trailing characters: "
+                              << value << std::endl;
+                } else if (requested < 0) {
+                    std::cerr << "Ignoring negative ADMISSION_MAX_INFLIGHT: "
+                              << value << std::endl;
+                } else if (requested >
+                           static_cast<long long>(std::numeric_limits<int64_t>::max())) {
+                    std::cerr << "Ignoring out-of-range ADMISSION_MAX_INFLIGHT: "
+                              << value << std::endl;
+                } else if (requested > 0) {
                     admission_max_inflight_ = static_cast<size_t>(requested);
                 }
             } catch (const std::exception&) {
-                // Keep admission disabled.
+                std::cerr << "Ignoring invalid ADMISSION_MAX_INFLIGHT: "
+                          << value << std::endl;
             }
         }
         if (const char* value = std::getenv("BOUNDED_LOAD_FACTOR")) {
@@ -187,15 +200,20 @@ public:
     };
 
     std::optional<AdmissionGuard> admitRequest() {
-        const int64_t current = admission_in_flight_.fetch_add(1);
-        if (admission_max_inflight_ > 0 &&
-            current >= static_cast<int64_t>(admission_max_inflight_)) {
-            admission_in_flight_.fetch_sub(1);
-            admission_rejected_.fetch_add(1);
-            return std::nullopt;
+        int64_t current = admission_in_flight_.load(std::memory_order_relaxed);
+        while (true) {
+            if (admission_max_inflight_ > 0 &&
+                current >= static_cast<int64_t>(admission_max_inflight_)) {
+                admission_rejected_.fetch_add(1, std::memory_order_relaxed);
+                return std::nullopt;
+            }
+            if (admission_in_flight_.compare_exchange_weak(
+                    current, current + 1,
+                    std::memory_order_acq_rel, std::memory_order_relaxed)) {
+                admission_accepted_.fetch_add(1, std::memory_order_relaxed);
+                return AdmissionGuard(&admission_in_flight_);
+            }
         }
-        admission_accepted_.fetch_add(1);
-        return AdmissionGuard(&admission_in_flight_);
     }
     
     std::string routeRequest(const json& request) {

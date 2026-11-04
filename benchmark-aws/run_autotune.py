@@ -35,7 +35,7 @@ def wait_url(url: str, timeout: float = 90) -> None:
     raise RuntimeError(f"timeout waiting for {url}")
 
 
-def model_sha(path: Path) -> str:
+def file_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -55,27 +55,28 @@ def start_services(args: argparse.Namespace, output: Path, phase: str):
     )
     logs = []
     workers = []
-    for index, port in enumerate(worker_ports, start=1):
-        worker_log = open(output / f"{phase}-worker-{index}.log", "w")
-        logs.append(worker_log)
-        workers.append(
-            subprocess.Popen(
-                [args.worker_bin, str(port), f"autotune_{index}", str(args.model)],
-                stdout=worker_log,
-                stderr=subprocess.STDOUT,
-                env=env,
-            )
-        )
-    gateway_log = open(output / f"{phase}-gateway.log", "w")
-    logs.append(gateway_log)
-    gateway = subprocess.Popen(
-        [args.gateway_bin, *(f"localhost:{port}" for port in worker_ports)],
-        stdout=gateway_log,
-        stderr=subprocess.STDOUT,
-        env=env,
-    )
+    gateway = None
     target = f"http://127.0.0.1:{gateway_port}"
     try:
+        for index, port in enumerate(worker_ports, start=1):
+            worker_log = open(output / f"{phase}-worker-{index}.log", "w")
+            logs.append(worker_log)
+            workers.append(
+                subprocess.Popen(
+                    [args.worker_bin, str(port), f"autotune_{index}", str(args.model)],
+                    stdout=worker_log,
+                    stderr=subprocess.STDOUT,
+                    env=env,
+                )
+            )
+        gateway_log = open(output / f"{phase}-gateway.log", "w")
+        logs.append(gateway_log)
+        gateway = subprocess.Popen(
+            [args.gateway_bin, *(f"localhost:{port}" for port in worker_ports)],
+            stdout=gateway_log,
+            stderr=subprocess.STDOUT,
+            env=env,
+        )
         for port in worker_ports:
             wait_url(f"http://127.0.0.1:{port}/health")
         wait_url(f"{target}/stats")
@@ -109,6 +110,14 @@ def run_candidate(args: argparse.Namespace) -> int:
     model = Path(args.model)
     if not model.is_file():
         raise SystemExit(f"model not found: {model}")
+    worker_bin = Path(args.worker_bin)
+    gateway_bin = Path(args.gateway_bin)
+    if not worker_bin.is_file():
+        raise SystemExit(f"worker binary not found: {worker_bin}")
+    if not gateway_bin.is_file():
+        raise SystemExit(f"gateway binary not found: {gateway_bin}")
+    worker_bin_sha = file_sha(worker_bin)
+    gateway_bin_sha = file_sha(gateway_bin)
 
     summaries = []
     if args.accuracy:
@@ -144,7 +153,8 @@ def run_candidate(args: argparse.Namespace) -> int:
         finally:
             stop_services(workers, gateway, logs)
 
-    for level in [] if args.accuracy_only else args.levels:
+    effective_levels = [] if args.accuracy_only else ([1] if args.rate is not None else args.levels)
+    for level in effective_levels:
         workers = []
         gateway = None
         logs = []
@@ -170,7 +180,8 @@ def run_candidate(args: argparse.Namespace) -> int:
                     args.seed,
                 )
             )
-            summary["name"] = f"{args.transport}-{args.mode}-c{level}"
+            label = f"rate{args.rate:g}-c{concurrency}" if args.rate is not None else f"c{level}"
+            summary["name"] = f"{args.transport}-{args.mode}-{label}"
             summaries.append(summary)
             level_dir = output / f"level-{level}"
             level_dir.mkdir(exist_ok=True)
@@ -184,12 +195,16 @@ def run_candidate(args: argparse.Namespace) -> int:
 
     run_record = {
         "model": str(model),
-        "model_sha256": model_sha(model),
+        "model_sha256": file_sha(model),
+        "worker_bin": str(worker_bin),
+        "worker_bin_sha256": worker_bin_sha,
+        "gateway_bin": str(gateway_bin),
+        "gateway_bin_sha256": gateway_bin_sha,
         "data_commit": manifest.get("dataset_commit"),
         "data_count": manifest.get("count"),
         "transport": args.transport,
         "mode": args.mode,
-        "levels": args.levels,
+        "levels": effective_levels,
         "requests_per_level": args.requests,
         "rate": args.rate,
         "duration": args.duration,
@@ -215,7 +230,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gateway-bin", default="build/gateway")
     parser.add_argument("--transport", choices=("binary", "json"), default="binary")
     parser.add_argument("--mode", choices=("unique", "repeated", "mixed"), default="unique")
-    parser.add_argument("--levels", type=int, nargs="+", default=[1, 2, 4])
+    parser.add_argument(
+        "--levels",
+        type=int,
+        nargs="+",
+        default=[1, 2, 4],
+        help="concurrency levels; ignored when --rate is set",
+    )
     parser.add_argument("--requests", type=int, default=50)
     parser.add_argument("--rate", type=float)
     parser.add_argument("--duration", type=float, default=60.0)
@@ -233,6 +254,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args(argv)
+    if args.workers < 1:
+        parser.error("--workers must be at least 1")
+    if args.admission_max < 0:
+        parser.error("--admission-max must be non-negative")
+    if args.rate_concurrency < 1:
+        parser.error("--rate-concurrency must be at least 1")
     return run_candidate(args)
 
 
