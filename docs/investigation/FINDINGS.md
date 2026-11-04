@@ -142,8 +142,8 @@ Evidence: 70 Python tests passed with 7 intended skips; 4/4 CTest cases passed; 
 
 - Ran 2 `c6i.large` gateways, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator, and 1 internal ALB in `us-east-1` at 50 req/s with per-gateway admission 4 (total 8).
 - Normal: 232/500 successes, 268 controlled 503s, p95 349 ms, 22.6 req/s. Failover: 455/1,000 successes, 326 controlled 503s, 180 ALB 502s, 39 ALB 504s, p95 340 ms, 18.7 req/s. Recovery: 235/500 successes, 265 controlled 503s, p95 350 ms, 22.8 req/s.
-- The ALB marked the terminated gateway unhealthy after 16.576 s; during that window it kept sending requests to the dead target and returned 502/504. The local aiohttp proxy used 1 s checks and connection retry and had no client-visible failover errors.
-- The ALB failover works but is slower than the local proxy. A production design needs deregistration/draining, client retry for 502/504, or faster detection. All targets were in one subnet/AZ; admission is per gateway.
+- The ALB TargetHealth API first reported the terminated gateway unhealthy after 16.576 s. Request IDs show new 502/504 responses from about 5.3 s to about 14.3 s after the load marker; the 16.576 s value is a health-state observation, not the full client-visible window. The local aiohttp proxy used 1 s checks and connection retry and had no client-visible failover errors.
+- The ALB failover works but is slower than the local proxy. Deregistration stayed at the default 300 s; the test relied on health checks. A production design needs deregistration/draining, client retry for 502/504, or faster detection. All targets were in one subnet/AZ; admission is per gateway.
 - Cost: $0.074941 successful run plus $0.046329 for two setup attempts; cleanup verified. See `docs/overload-protection.md` and `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 
 ## Portfolio and repository handoff

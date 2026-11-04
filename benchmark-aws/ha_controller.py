@@ -28,19 +28,26 @@ def run_id() -> str:
     return "infer-" + secrets.token_hex(8)
 
 
+def check_run_limit(start: float) -> None:
+    if time.monotonic() - start > RUN_LIMIT_SECONDS:
+        raise RuntimeError("run exceeded the 30-minute workload limit")
+
+
 def save_state(path: Path, state: dict) -> None:
     controller.save_state(path, state)
 
 
 def create_groups(state: dict, state_path: Path) -> None:
-    state["groups"] = {
-        "ssh": mh.create_group("ssh", "SSH from owner", state["run_id"], state["vpc"]),
-        "alb": mh.create_group("alb", "Internal ALB HTTP", state["run_id"], state["vpc"]),
-        "gateway": mh.create_group("gateway", "Gateway app port", state["run_id"], state["vpc"]),
-        "worker": mh.create_group("worker", "Worker app port", state["run_id"], state["vpc"]),
-        "load": mh.create_group("load", "Load generator", state["run_id"], state["vpc"]),
-    }
-    save_state(state_path, state)
+    state["groups"] = {}
+    for name, description in (
+        ("ssh", "SSH from owner"),
+        ("alb", "Internal ALB HTTP"),
+        ("gateway", "Gateway app port"),
+        ("worker", "Worker app port"),
+        ("load", "Load generator"),
+    ):
+        state["groups"][name] = mh.create_group(name, description, state["run_id"], state["vpc"])
+        save_state(state_path, state)
     mh.authorize_ip(state["groups"]["ssh"], 22, state["public_ip"] + "/32")
     mh.authorize_group(state["groups"]["alb"], 8000, state["groups"]["load"])
     mh.authorize_group(state["groups"]["gateway"], 8000, state["groups"]["alb"])
@@ -376,10 +383,12 @@ def run_failover(state: dict, output: Path, state_path: Path) -> dict:
     )
     mh.ssh_run(load["host"], load["ssh_options"], command_text, 30)
     wait_remote_file("~/benchmark-work/results/failover.started", load, 900)
+    load_started_at = time.monotonic()
     time.sleep(2.0)
     before = get_json("http://127.0.0.1:8000/stats", state["instances"]["gateway-1"])
     state["alb"]["gateway1_before_kill"] = before["admission"]
     killed_at = time.monotonic()
+    state["alb"]["kill_requested_seconds"] = round(killed_at - load_started_at, 3)
     aws(
         "ec2",
         "terminate-instances",
@@ -484,12 +493,18 @@ def delete_alb(state: dict) -> bool:
         value = alb.get(key)
         if not value:
             continue
-        try:
-            aws("elbv2", command_name, arg, value)
-        except subprocess.CalledProcessError as exc:
-            if "NotFound" not in (exc.stderr or ""):
-                print(f"ERROR deleting ALB resource {key}: {exc.stderr}", file=sys.stderr)
-                return False
+        for attempt in range(3):
+            try:
+                aws("elbv2", command_name, arg, value)
+                break
+            except subprocess.CalledProcessError as exc:
+                stderr = exc.stderr or ""
+                if "NotFound" in stderr:
+                    break
+                if attempt == 2:
+                    print(f"ERROR deleting ALB resource {key}: {stderr}", file=sys.stderr)
+                    return False
+                time.sleep(3)
     if not alb.get("arn"):
         return True
     deadline = time.monotonic() + 180
@@ -507,9 +522,9 @@ def delete_alb(state: dict) -> bool:
 def cleanup_ha_state(state: dict) -> bool:
     if not state.get("account"):
         return True
-    if not delete_alb(state):
-        return False
-    return mh.cleanup_state(state)
+    alb_ok = delete_alb(state)
+    base_ok = mh.cleanup_state(state)
+    return alb_ok and base_ok
 
 
 def run(args: argparse.Namespace) -> int:
@@ -539,6 +554,8 @@ def run(args: argparse.Namespace) -> int:
     result_code = 1
     start = time.monotonic()
     try:
+        if ha_preflight.run_preflight() != 0:
+            raise RuntimeError("preflight failed; refusing to create AWS resources")
         context = controller.preflight()
         subnets = aws(
             "ec2",
@@ -593,6 +610,7 @@ def run(args: argparse.Namespace) -> int:
             mh.ssh_run(item["host"], item["ssh_options"], "tar -xzf ~/payload.tar.gz -C ~")
         prepare_roles(state, payload_archive, args.model, directory)
         start_services(state, args.model, args.admission_max)
+        check_run_limit(start)
         try:
             create_alb(state, state_path)
         except subprocess.CalledProcessError as exc:
@@ -600,9 +618,13 @@ def run(args: argparse.Namespace) -> int:
             raise
         print(f"ALB ready: {state['alb']['dns']}", flush=True)
 
+        check_run_limit(start)
         fetch_phase(state, "normal", directory, 10)
+        check_run_limit(start)
         failover = run_failover(state, directory, state_path)
+        check_run_limit(start)
         launch_recovery_gateway(state, state_path, userdata, args.model)
+        check_run_limit(start)
         fetch_phase(state, "recovery", directory, 10)
         state["failover"] = failover
         save_state(state_path, state)

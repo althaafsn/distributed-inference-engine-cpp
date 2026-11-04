@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "date": "2026-11-04",
-  "scope": "AWS internal-ALB two-gateway HA validation. Not a production or multi-AZ result.",
+  "scope": "AWS internal-ALB two-gateway HA validation. One run; not a production or multi-AZ result.",
   "run_id": "infer-b24dc251e5bbc128",
   "region": "us-east-1",
   "topology": {
@@ -84,7 +84,8 @@
           "rejected": 135,
           "target_p95_ms": 400
         }
-      }
+      },
+      "latency_note": "Percentiles cover successful HTTP 200 responses only."
     },
     "failover": {
       "requests": 1000,
@@ -108,27 +109,25 @@
         "gateway_2": "healthy"
       },
       "gateways": {
+        "gateway-1": {
+          "accepted": 47,
+          "rejected": 48,
+          "note": "snapshot about 2 s after load start; final counters unavailable after termination"
+        },
         "gateway-2": {
-          "accepted": 506,
-          "adaptive": false,
-          "configured_max": 4,
-          "in_flight": 0,
-          "limit_changes": 0,
-          "max_in_flight": 4,
-          "min_in_flight": 4,
-          "observed_p95_ms": -1,
-          "observed_samples": 0,
-          "rejected": 394,
-          "target_p95_ms": 400
+          "accepted": 391,
+          "rejected": 259
         }
       },
       "gateway1_before_kill": {
         "accepted": 47,
         "rejected": 48
       },
-      "gateway2_phase": {
-        "accepted": 391,
-        "rejected": 259
+      "latency_note": "Percentiles cover successful HTTP 200 responses only; 502/504/503 are counted separately.",
+      "unattributed_after_snapshot": {
+        "accepted": 17,
+        "rejected": 19,
+        "note": "occurred between the pre-kill snapshot and termination; final gateway-1 counters are unavailable"
       }
     },
     "recovery": {
@@ -153,39 +152,21 @@
       "gateways": {
         "gateway-1": {
           "accepted": 116,
-          "adaptive": false,
-          "configured_max": 4,
-          "in_flight": 0,
-          "limit_changes": 0,
-          "max_in_flight": 4,
-          "min_in_flight": 4,
-          "observed_p95_ms": -1,
-          "observed_samples": 0,
-          "rejected": 134,
-          "target_p95_ms": 400
+          "rejected": 134
         },
         "gateway-2": {
-          "accepted": 625,
-          "adaptive": false,
-          "configured_max": 4,
-          "in_flight": 0,
-          "limit_changes": 0,
-          "max_in_flight": 4,
-          "min_in_flight": 4,
-          "observed_p95_ms": -1,
-          "observed_samples": 0,
-          "rejected": 525,
-          "target_p95_ms": 400
+          "accepted": 119,
+          "rejected": 131
         }
       },
-      "gateway2_phase": {
-        "accepted": 119,
-        "rejected": 131
-      }
+      "latency_note": "Percentiles cover successful HTTP 200 responses only."
     }
   },
   "failover": {
-    "observed_failover_seconds": 16.576
+    "observed_failover_seconds": 16.576,
+    "kill_requested_seconds": null,
+    "kill_requested_note": "The harness did not record the request time in this run; the EC2 transition was about 5 s after the load marker.",
+    "observed_failover_note": "TargetHealth API first reported unhealthy after 16.576 s. Request IDs show new 502/504 responses starting about 5.3 s after the load marker and no new dead-target routing after about 14.3 s; this is a health-state observation, not the full client-visible routing window."
   },
   "cost": {
     "instance_runtime_seconds": {
@@ -207,5 +188,6 @@
     "The local aiohttp HA proxy used 1 s checks and connection-error retry, so it had no client-visible failover errors. The ALB path is slower.",
     "The ALB spans two AZs; all instances and targets are in one subnet/AZ. This is not a multi-AZ failover test.",
     "No public listener, TLS, authentication, or global admission limit. One run, not a production availability claim."
-  ]
+  ],
+  "preflight": "Manual preflight ran before launch; the controller now calls ha_preflight before creating resources."
 }

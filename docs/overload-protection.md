@@ -228,7 +228,12 @@ Topology: 2 `c6i.large` gateways, 2 `c6i.large` workers, 1 `c6i.xlarge` load gen
 | Failover | 455 / 1,000 | 326 | 180 | 39 | 340 ms | 348 ms | 18.7 /s |
 | Recovery | 235 / 500 | 265 | 0 | 0 | 350 ms | 374 ms | 22.8 /s |
 
-- The ALB target group marked the terminated gateway unhealthy after **16.576 seconds**. During that window the ALB kept sending requests to the dead target and returned **180 × 502** and **39 × 504**. The 503s are gateway admission rejections, not ALB failures.
+Latency percentiles cover successful HTTP 200 responses only; 502/504/503 responses are counted separately.
+
+- The ALB TargetHealth API first reported the terminated gateway unhealthy after **16.576 seconds**. Request IDs show new 502/504 responses starting about 5.3 seconds after the load marker and no new dead-target routing after about 14.3 seconds. The 16.576-second value is a health-state observation, not the full client-visible routing window; the exact ALB transition is inferred because CloudTrail and CloudWatch are unavailable.
+- The ALB returned **180 × 502** and **39 × 504** during the transition. The 503s are gateway admission rejections, not ALB failures.
+- The instance was terminated about 5 seconds after the load marker, not exactly 2 seconds: the harness slept 2 seconds, then took the pre-kill stats snapshot before terminating the instance.
+- The target group uses the default 300-second deregistration delay. The planned 5-second delay was not configured; failover relies on health checks, not deregistration.
 - Both targets were healthy during normal and recovery. The replacement gateway was healthy before the recovery phase.
 - Normal and recovery shed about 53% because four in-flight requests per gateway (eight total) were below the 50 req/s offered load; accepted throughput was about 23 requests/s.
 - The local aiohttp proxy used one-second health checks and connection-error retry, so it had no client-visible failover errors. The ALB health-check interval is five seconds and requires two unhealthy checks, so its failover window is much longer. A production design needs deregistration/draining, client retry for 502/504, or a load balancer with faster detection.
@@ -239,7 +244,7 @@ Sanitized artifact: `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 
 ## Limits
 
-- Local 16-core host and one AWS topology: 1 `c6i.large` gateway, 2 `c6i.large` workers, 1 `c6i.xlarge` load generator.
+- Local 16-core host and two AWS topologies: a single-gateway admission run and a two-gateway internal-ALB run.
 - Two workers; no 1/4/8-worker AWS comparison.
 - AWS: three 10-second runs per rate. Local: one run each at 25 and 100 requests/s, three at 50.
 - Worker CPU was collected on AWS; local runs record client CPU only.
@@ -249,7 +254,7 @@ Sanitized artifact: `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 - The admission limit of 7 was carried from the local 2-worker test and was not tuned on AWS.
 - The adaptive and retry experiment is local only; no AWS adaptive or retry run was performed.
 - The gateway HA test ran locally with an aiohttp proxy and on AWS with an internal ALB. Neither is a production load balancer.
-- The AWS ALB run used one run, one subnet/AZ for all targets, and no client retry for 502/504. The observed failover window was 16.6 s.
+- The AWS ALB run used one run, one subnet/AZ for all targets, no client retry for 502/504, and a health-state observation of 16.6 s. The client-visible dead-target routing began ~5.3 s after the load marker and stopped ~14.3 s.
 - Adaptive policy constants (20 samples, 20% decrease, +1 increase, 110%/75% deadband) were chosen from first principles and not tuned across topologies.
 - Retry p95 includes the wait between attempts; it is not comparable to first-attempt latency.
 - Static mode uses a manually selected limit; adaptive mode is opt-in and was tested locally. A production control plane would also account for multiple gateways and per-client quotas.
@@ -260,10 +265,12 @@ Sanitized artifact: `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 ## Artifacts
 
 - Local sanitized summary: `benchmarks/results/2026-11-04-overload-protection.json`.
-- AWS sanitized summary: `benchmarks/results/2026-11-04-aws-admission-validation.json`.
+- AWS admission sanitized summary: `benchmarks/results/2026-11-04-aws-admission-validation.json`.
+- AWS ALB sanitized summary: `benchmarks/results/2026-11-04-aws-alb-ha.json`.
 - Tests: `tests/test_admission_control.py` covers `/infer`, `/infer_tensor`, negative and out-of-range configuration, and release after a malformed request.
 - Raw local runs: `/tmp/opencode/final-*` and `/tmp/opencode/adaptive-*` (ignored, temporary).
-- Raw AWS run: `benchmark-aws/runs/infer-8449738a5d8c568d` (ignored, local).
+- Raw AWS admission run: `benchmark-aws/runs/infer-8449738a5d8c568d` (ignored, local).
+- Raw AWS ALB run: `benchmark-aws/runs/infer-b24dc251e5bbc128` (ignored, local).
 
 ## Rollback
 
